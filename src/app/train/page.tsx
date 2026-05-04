@@ -1,8 +1,12 @@
+import { requireUser } from "@/lib/auth-guard";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
-export default function TrainPage() {
+export const dynamic = "force-dynamic";
+
+export default async function TrainPage() {
+  await requireUser();
   return (
     <>
       <PageHeader title="Train" subtitle="Phase 2 lands here next" />

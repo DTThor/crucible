@@ -1,8 +1,12 @@
+import { requireUser } from "@/lib/auth-guard";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
-export default function FastPage() {
+export const dynamic = "force-dynamic";
+
+export default async function FastPage() {
+  await requireUser();
   return (
     <>
       <PageHeader title="Fast" subtitle="Phase 1 lands here next" />

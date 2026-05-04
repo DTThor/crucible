@@ -1,14 +1,12 @@
-import { createClient } from "@/lib/supabase/server";
+import { requireUser } from "@/lib/auth-guard";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { ThemeToggle } from "./theme-toggle";
 
-export default async function MePage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+export const dynamic = "force-dynamic";
 
+export default async function MePage() {
+  const user = await requireUser();
   return (
     <>
       <PageHeader title="Me" />
@@ -18,7 +16,7 @@ export default async function MePage() {
             <p className="text-xs uppercase tracking-wide text-muted-foreground">
               Account
             </p>
-            <p className="mt-1 font-medium">{user?.email}</p>
+            <p className="mt-1 font-medium">{user.email}</p>
           </CardContent>
         </Card>
 

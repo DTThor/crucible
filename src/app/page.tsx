@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { requireUser } from "@/lib/auth-guard";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Timer, Dumbbell, Droplets, Scale } from "lucide-react";
@@ -27,11 +27,10 @@ const MONTH = [
   "Dec",
 ];
 
+export const dynamic = "force-dynamic";
+
 export default async function TodayPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await requireUser();
 
   const now = new Date();
   const subtitle = `${WEEKDAY[now.getDay()]} · ${MONTH[now.getMonth()]} ${now.getDate()}`;
@@ -96,7 +95,7 @@ export default async function TodayPage() {
         </div>
 
         <p className="px-1 pt-2 text-xs text-muted-foreground">
-          Signed in as {user?.email}
+          Signed in as {user.email}
         </p>
       </div>
     </>
