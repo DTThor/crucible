@@ -1,54 +1,113 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 
+type Step = "email" | "code";
+
 export function LoginForm() {
+  const router = useRouter();
   const [email, setEmail] = useState("");
-  const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">(
-    "idle",
-  );
+  const [code, setCode] = useState("");
+  const [step, setStep] = useState<Step>("email");
+  const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+  async function sendCode(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    setStatus("sending");
+    setBusy(true);
     setError(null);
-
-    // Use the actual browser origin so the magic-link redirects back to
-    // whatever URL the user is on (localhost in dev, Vercel in prod).
-    const redirectTo = `${window.location.origin}/auth/callback`;
 
     const supabase = createClient();
     const { error } = await supabase.auth.signInWithOtp({
       email,
-      options: { emailRedirectTo: redirectTo },
+      options: { shouldCreateUser: true },
     });
 
+    setBusy(false);
     if (error) {
       setError(error.message);
-      setStatus("error");
     } else {
-      setStatus("sent");
+      setStep("code");
     }
   }
 
-  if (status === "sent") {
+  async function verifyCode(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setBusy(true);
+    setError(null);
+
+    const supabase = createClient();
+    const { error } = await supabase.auth.verifyOtp({
+      email,
+      token: code.trim(),
+      type: "email",
+    });
+
+    setBusy(false);
+    if (error) {
+      setError(error.message);
+    } else {
+      router.push("/");
+      router.refresh();
+    }
+  }
+
+  if (step === "code") {
     return (
-      <div className="rounded-2xl border border-border bg-card p-6 text-center">
-        <p className="text-2xl">✉️</p>
-        <h2 className="mt-2 text-lg font-semibold">Check your email</h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          We sent a magic link to <span className="font-medium">{email}</span>.
-          Click it on this device to sign in.
-        </p>
-      </div>
+      <form onSubmit={verifyCode} className="space-y-4">
+        <div className="rounded-2xl border border-border bg-card p-5 text-center">
+          <p className="text-2xl">✉️</p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Code sent to <span className="font-medium">{email}</span>
+          </p>
+        </div>
+        <div className="space-y-2">
+          <label htmlFor="code" className="text-sm font-medium">
+            6-digit code
+          </label>
+          <input
+            id="code"
+            type="text"
+            required
+            autoComplete="one-time-code"
+            inputMode="numeric"
+            pattern="[0-9]*"
+            maxLength={6}
+            placeholder="123456"
+            value={code}
+            onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
+            className="flex h-14 w-full rounded-md border border-input bg-background px-4 text-center font-mono text-2xl tracking-[0.5em] ring-offset-background placeholder:text-muted-foreground/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          />
+        </div>
+        {error && <p className="text-sm text-destructive">{error}</p>}
+        <Button
+          type="submit"
+          size="lg"
+          className="w-full"
+          disabled={busy || code.length !== 6}
+        >
+          {busy ? "Verifying…" : "Sign in"}
+        </Button>
+        <button
+          type="button"
+          onClick={() => {
+            setStep("email");
+            setCode("");
+            setError(null);
+          }}
+          className="block w-full text-center text-xs text-muted-foreground underline"
+        >
+          Use a different email
+        </button>
+      </form>
     );
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={sendCode} className="space-y-4">
       <div className="space-y-2">
         <label htmlFor="email" className="text-sm font-medium">
           Email
@@ -70,12 +129,12 @@ export function LoginForm() {
         type="submit"
         size="lg"
         className="w-full"
-        disabled={status === "sending"}
+        disabled={busy || !email}
       >
-        {status === "sending" ? "Sending…" : "Send magic link"}
+        {busy ? "Sending…" : "Send sign-in code"}
       </Button>
       <p className="text-center text-xs text-muted-foreground">
-        No password. We'll email you a one-tap sign-in link.
+        We'll email you a 6-digit code. No password.
       </p>
     </form>
   );
