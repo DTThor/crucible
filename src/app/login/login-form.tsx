@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
-import { getSiteUrl } from "@/lib/site";
 
 export function LoginForm() {
   const [email, setEmail] = useState("");
@@ -17,10 +16,14 @@ export function LoginForm() {
     setStatus("sending");
     setError(null);
 
+    // Use the actual browser origin so the magic-link redirects back to
+    // whatever URL the user is on (localhost in dev, Vercel in prod).
+    const redirectTo = `${window.location.origin}/auth/callback`;
+
     const supabase = createClient();
     const { error } = await supabase.auth.signInWithOtp({
       email,
-      options: { emailRedirectTo: `${getSiteUrl()}/auth/callback` },
+      options: { emailRedirectTo: redirectTo },
     });
 
     if (error) {
