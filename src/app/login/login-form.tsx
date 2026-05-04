@@ -66,7 +66,7 @@ export function LoginForm() {
         </div>
         <div className="space-y-2">
           <label htmlFor="code" className="text-sm font-medium">
-            6-digit code
+            Sign-in code
           </label>
           <input
             id="code"
@@ -75,11 +75,11 @@ export function LoginForm() {
             autoComplete="one-time-code"
             inputMode="numeric"
             pattern="[0-9]*"
-            maxLength={6}
-            placeholder="123456"
+            maxLength={8}
+            placeholder="••••••••"
             value={code}
             onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
-            className="flex h-14 w-full rounded-md border border-input bg-background px-4 text-center font-mono text-2xl tracking-[0.5em] ring-offset-background placeholder:text-muted-foreground/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            className="flex h-14 w-full rounded-md border border-input bg-background px-3 text-center font-mono text-2xl tracking-[0.35em] ring-offset-background placeholder:text-muted-foreground/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           />
         </div>
         {error && <p className="text-sm text-destructive">{error}</p>}
@@ -87,7 +87,7 @@ export function LoginForm() {
           type="submit"
           size="lg"
           className="w-full"
-          disabled={busy || code.length !== 6}
+          disabled={busy || code.length < 6}
         >
           {busy ? "Verifying…" : "Sign in"}
         </Button>
