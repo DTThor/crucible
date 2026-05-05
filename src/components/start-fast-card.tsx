@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,6 +17,7 @@ interface StartFastCardProps {
 }
 
 export function StartFastCard({ todayProtocol }: StartFastCardProps) {
+  const router = useRouter();
   const [selected, setSelected] = useState<ProtocolSlug>(todayProtocol);
   const [showPicker, setShowPicker] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -28,7 +30,11 @@ export function StartFastCard({ todayProtocol }: StartFastCardProps) {
     setError(null);
     startTransition(async () => {
       const res = await startFast(selected);
-      if (!res.ok) setError(res.error);
+      if (!res.ok) {
+        setError(res.error);
+      } else {
+        router.refresh();
+      }
     });
   }
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { PhaseRing } from "@/components/phase-ring";
@@ -27,6 +28,7 @@ export function ActiveFastCard({
   protocolSlug,
   startedAt,
 }: ActiveFastCardProps) {
+  const router = useRouter();
   const [now, setNow] = useState(() => Date.now());
   const [confirmingStop, setConfirmingStop] = useState(false);
   const [showProtocolPicker, setShowProtocolPicker] = useState(false);
@@ -68,6 +70,7 @@ export function ActiveFastCard({
     startTransition(async () => {
       const reason = targetReached ? "completed" : "broken_early";
       await stopFast(fastId, reason);
+      router.refresh();
     });
   }
 
@@ -75,6 +78,7 @@ export function ActiveFastCard({
     setShowProtocolPicker(false);
     startTransition(async () => {
       await changeActiveFastProtocol(fastId, slug);
+      router.refresh();
     });
   }
 
@@ -95,6 +99,7 @@ export function ActiveFastCard({
         setEditError(res.error);
       } else {
         setShowStartEditor(false);
+        router.refresh();
       }
     });
   }
