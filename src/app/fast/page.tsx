@@ -1,40 +1,48 @@
 import { requireUser } from "@/lib/auth-guard";
 import { PageHeader } from "@/components/page-header";
+import { ActiveFastCard } from "@/components/active-fast-card";
+import { StartFastCard } from "@/components/start-fast-card";
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { getActiveFast } from "@/lib/fasting/queries";
+import { getTodayProtocol } from "@/lib/fasting/templates";
+import { PROTOCOLS } from "@/lib/fasting/protocols";
 
 export const dynamic = "force-dynamic";
 
 export default async function FastPage() {
   await requireUser();
+
+  const active = await getActiveFast();
+  const todayProtocol = getTodayProtocol();
+  const todayName = PROTOCOLS[todayProtocol].name;
+
   return (
     <>
-      <PageHeader title="Fast" subtitle="Phase 1 lands here next" />
+      <PageHeader
+        title="Fast"
+        subtitle={active ? "In progress" : `Today's plan: ${todayName}`}
+      />
+
       <div className="space-y-4">
+        {active ? (
+          <ActiveFastCard
+            fastId={active.id}
+            protocolSlug={active.protocol_slug}
+            startedAt={active.started_at}
+          />
+        ) : (
+          <StartFastCard todayProtocol={todayProtocol} />
+        )}
+
         <Card>
-          <CardContent className="py-10 text-center">
-            <div className="mx-auto mb-4 flex h-32 w-32 items-center justify-center rounded-full border-4 border-dashed border-muted-foreground/30">
-              <span className="font-mono text-xl text-muted-foreground">
-                —h —m
-              </span>
-            </div>
-            <Button size="lg" className="mt-2 w-full">
-              Start a fast
-            </Button>
-            <p className="mt-3 text-xs text-muted-foreground">
-              Wired up in Phase 1.
+          <CardContent className="py-5">
+            <p className="text-xs uppercase tracking-wide text-muted-foreground">
+              Coming next
             </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="py-6">
-            <p className="text-sm font-medium">Coming next</p>
             <ul className="mt-2 space-y-1 text-sm text-muted-foreground">
-              <li>• Live phase ring (Fed → Autophagy)</li>
-              <li>• Water + weight quick-log</li>
-              <li>• Calendar heatmap of fast lengths</li>
-              <li>• Weekly plan editor (16:8 / OMAD / 36h)</li>
-              <li>• Fung-anchored phase explainers</li>
+              <li>• Water + weight quick-log (Slice B)</li>
+              <li>• Calendar heatmap of fast lengths (Slice C)</li>
+              <li>• Tap a phase to read the Fung-anchored explainer</li>
             </ul>
           </CardContent>
         </Card>

@@ -1,7 +1,12 @@
+import Link from "next/link";
 import { requireUser } from "@/lib/auth-guard";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Timer, Dumbbell, Droplets, Scale } from "lucide-react";
+import { TodayFastSnapshot } from "@/components/today-fast-snapshot";
+import { getActiveFast } from "@/lib/fasting/queries";
+import { getTodayProtocol } from "@/lib/fasting/templates";
+import { PROTOCOLS } from "@/lib/fasting/protocols";
 
 const WEEKDAY = [
   "Sunday",
@@ -31,6 +36,9 @@ export const dynamic = "force-dynamic";
 
 export default async function TodayPage() {
   const user = await requireUser();
+  const active = await getActiveFast();
+  const todayProtocol = getTodayProtocol();
+  const todayName = PROTOCOLS[todayProtocol].name;
 
   const now = new Date();
   const subtitle = `${WEEKDAY[now.getDay()]} · ${MONTH[now.getMonth()]} ${now.getDate()}`;
@@ -44,14 +52,24 @@ export default async function TodayPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <Timer className="h-4 w-4 text-primary" />
-              Active fast
+              {active ? "Active fast" : "No fast in progress"}
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-3xl font-mono tabular-nums">—h —m</p>
-            <p className="mt-1 text-sm text-muted-foreground">
-              No fast in progress. Start one from the Fast tab.
-            </p>
+            {active ? (
+              <TodayFastSnapshot
+                startedAt={active.started_at}
+                protocolSlug={active.protocol_slug}
+              />
+            ) : (
+              <Link
+                href="/fast"
+                className="block text-sm text-muted-foreground"
+              >
+                Today's plan: <span className="font-medium text-foreground">{todayName}</span>.
+                Start it from the Fast tab.
+              </Link>
+            )}
           </CardContent>
         </Card>
 

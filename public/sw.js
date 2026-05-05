@@ -9,7 +9,7 @@
  * Bumping CACHE_VERSION invalidates the old cache on next activation.
  */
 
-const CACHE_VERSION = "crucible-v2";
+const CACHE_VERSION = "crucible-v3";
 const APP_SHELL = ["/", "/fast", "/train", "/me", "/manifest.json"];
 
 self.addEventListener("install", (event) => {
