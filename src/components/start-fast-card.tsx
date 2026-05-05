@@ -28,7 +28,7 @@ export function StartFastCard({ todayProtocol }: StartFastCardProps) {
     setError(null);
     startTransition(async () => {
       const res = await startFast(selected);
-      if ("error" in res) setError(res.error);
+      if (!res.ok) setError(res.error);
     });
   }
 

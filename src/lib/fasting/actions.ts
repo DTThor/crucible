@@ -6,30 +6,32 @@ import { createClient } from "@/lib/supabase/server";
 import { getProtocol, type ProtocolSlug } from "./protocols";
 
 /**
- * Mutation server actions. RLS enforces the authenticated user.
- * All return after revalidating Today + Fast paths so the UI updates.
+ * Discriminated union so TS narrows `if (!res.ok) ...` properly on the client.
  */
+export type ActionResult =
+  | { ok: true }
+  | { ok: false; error: string };
 
-export async function startFast(protocolSlug: ProtocolSlug) {
+const fail = (error: string): ActionResult => ({ ok: false, error });
+const ok = (): ActionResult => ({ ok: true });
+
+export async function startFast(
+  protocolSlug: ProtocolSlug,
+): Promise<ActionResult> {
   const supabase = await createClient();
 
-  // Confirm we have a user (defense in depth — middleware should have already checked)
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  // Reject if there's already an active fast — UI shouldn't let this happen,
-  // but a stale tab could.
   const { data: existing } = await supabase
     .from("fasts")
     .select("id")
     .eq("status", "active")
     .limit(1)
     .maybeSingle();
-  if (existing) {
-    return { error: "A fast is already in progress." as const };
-  }
+  if (existing) return fail("A fast is already in progress.");
 
   const protocol = getProtocol(protocolSlug);
   const now = new Date();
@@ -45,17 +47,17 @@ export async function startFast(protocolSlug: ProtocolSlug) {
 
   if (error) {
     console.error("startFast error:", error);
-    return { error: "Could not start fast. Try again." as const };
+    return fail("Could not start fast. Try again.");
   }
 
   revalidatePath("/", "layout");
-  return { ok: true as const };
+  return ok();
 }
 
 export async function stopFast(
   fastId: string,
   reason: "completed" | "broken_early" = "completed",
-) {
+): Promise<ActionResult> {
   const supabase = await createClient();
   const {
     data: { user },
@@ -64,39 +66,35 @@ export async function stopFast(
 
   const { error } = await supabase
     .from("fasts")
-    .update({
-      ended_at: new Date().toISOString(),
-      status: reason,
-    })
+    .update({ ended_at: new Date().toISOString(), status: reason })
     .eq("id", fastId)
     .eq("status", "active");
 
   if (error) {
     console.error("stopFast error:", error);
-    return { error: "Could not stop fast." as const };
+    return fail("Could not stop fast.");
   }
 
   revalidatePath("/", "layout");
-  return { ok: true as const };
+  return ok();
 }
 
 export async function changeActiveFastProtocol(
   fastId: string,
   protocolSlug: ProtocolSlug,
-) {
+): Promise<ActionResult> {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  // Recompute plannedEnd from started_at + new target so the ring stays accurate.
   const { data: existing } = await supabase
     .from("fasts")
     .select("started_at")
     .eq("id", fastId)
     .single();
-  if (!existing) return { error: "Fast not found." as const };
+  if (!existing) return fail("Fast not found.");
 
   const protocol = getProtocol(protocolSlug);
   const newPlannedEnd = new Date(
@@ -114,9 +112,9 @@ export async function changeActiveFastProtocol(
 
   if (error) {
     console.error("changeActiveFastProtocol error:", error);
-    return { error: "Could not change protocol." as const };
+    return fail("Could not change protocol.");
   }
 
   revalidatePath("/", "layout");
-  return { ok: true as const };
+  return ok();
 }
