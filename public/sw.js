@@ -1,33 +1,41 @@
 /**
  * Crucible service worker — minimal, hand-rolled.
  *
- * Strategy:
- *  - App shell (HTML routes): network-first, fallback to cache when offline.
- *  - Static assets (Next chunks, icons, fonts): cache-first.
- *  - API/Supabase calls: never cached — always go to network.
+ * v5 strategy:
+ *  - Static assets (Next chunks, fonts, icons): cache-first.
+ *  - HTML navigations: passed through to the network (no SW intercept), so
+ *    deploys are visible on the very next request — no waiting for the SW
+ *    to update first. Sacrifices offline page support; we'll add proper
+ *    offline + a queued-write store later.
+ *  - API/Supabase calls: never cached.
  *
- * Bumping CACHE_VERSION invalidates the old cache on next activation.
+ * Bumping CACHE_VERSION evicts the old cache on activation.
  */
 
-const CACHE_VERSION = "crucible-v4";
-const APP_SHELL = ["/", "/fast", "/train", "/me", "/manifest.json"];
+const CACHE_VERSION = "crucible-v5";
 
-self.addEventListener("install", (event) => {
-  event.waitUntil(
-    caches.open(CACHE_VERSION).then((cache) => cache.addAll(APP_SHELL)),
-  );
+self.addEventListener("install", () => {
+  // Activate immediately on first install — don't wait for old SW to die.
   self.skipWaiting();
+});
+
+// Lets the page tell us "you're ready, take over now."
+self.addEventListener("message", (event) => {
+  if (event.data && event.data.type === "SKIP_WAITING") {
+    self.skipWaiting();
+  }
 });
 
 self.addEventListener("activate", (event) => {
   event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(
+    (async () => {
+      const keys = await caches.keys();
+      await Promise.all(
         keys.filter((k) => k !== CACHE_VERSION).map((k) => caches.delete(k)),
-      ),
-    ),
+      );
+      await self.clients.claim();
+    })(),
   );
-  self.clients.claim();
 });
 
 self.addEventListener("fetch", (event) => {
@@ -36,7 +44,7 @@ self.addEventListener("fetch", (event) => {
 
   const url = new URL(req.url);
 
-  // Never cache Supabase / API calls.
+  // Never touch Supabase / API / auth — always go straight to network.
   if (
     url.hostname.endsWith(".supabase.co") ||
     url.pathname.startsWith("/api/") ||
@@ -45,21 +53,15 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // HTML navigation → network-first.
+  // HTML navigations: don't intercept. Network is the source of truth so
+  // deploys appear on the next page load.
   if (req.mode === "navigate") {
-    event.respondWith(
-      fetch(req)
-        .then((res) => {
-          const copy = res.clone();
-          caches.open(CACHE_VERSION).then((c) => c.put(req, copy));
-          return res;
-        })
-        .catch(() => caches.match(req).then((m) => m || caches.match("/"))),
-    );
     return;
   }
 
-  // Static assets → cache-first.
+  // Same-origin static assets: cache-first.
+  if (url.origin !== self.location.origin) return;
+
   event.respondWith(
     caches.match(req).then(
       (cached) =>
