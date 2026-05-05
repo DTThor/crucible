@@ -43,10 +43,11 @@ export function PhaseRing({
   // Phases visible on this ring (those that overlap [0, targetHours]).
   const visiblePhases = PHASES.filter((p) => p.fromHours < targetHours);
 
-  // Whole minutes elapsed (display only — internal calc stays fractional).
-  const totalMinutes = Math.floor(elapsedHours * 60);
-  const hh = Math.floor(totalMinutes / 60);
-  const mm = totalMinutes % 60;
+  // Display: whole hours, minutes, seconds. Internal calc stays fractional.
+  const totalSeconds = Math.floor(elapsedHours * 3600);
+  const hh = Math.floor(totalSeconds / 3600);
+  const mm = Math.floor((totalSeconds % 3600) / 60);
+  const ss = totalSeconds % 60;
 
   // Playhead position
   const playheadAngle = progressFraction * 2 * Math.PI - Math.PI / 2;
@@ -122,14 +123,15 @@ export function PhaseRing({
 
       {/* Center text */}
       <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-1 text-center">
-        <p className="font-mono text-4xl font-semibold tabular-nums tracking-tight">
+        <p className="font-mono text-4xl font-semibold tabular-nums tracking-tight leading-none">
           {hh}
-          <span className="text-2xl text-muted-foreground">h</span>{" "}
+          <span className="text-xl text-muted-foreground">:</span>
           {mm.toString().padStart(2, "0")}
-          <span className="text-2xl text-muted-foreground">m</span>
+          <span className="text-xl text-muted-foreground">:</span>
+          {ss.toString().padStart(2, "0")}
         </p>
         <p
-          className="text-sm font-medium"
+          className="mt-1 text-sm font-medium"
           style={{ color: currentPhase.color }}
         >
           {currentPhase.name}

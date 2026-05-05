@@ -31,9 +31,10 @@ export function TodayFastSnapshot({
   );
   const protocol = getProtocol(protocolSlug);
   const phase = getCurrentPhase(elapsedHours);
-  const totalMinutes = Math.floor(elapsedHours * 60);
-  const hh = Math.floor(totalMinutes / 60);
-  const mm = totalMinutes % 60;
+  const totalSeconds = Math.floor(elapsedHours * 3600);
+  const hh = Math.floor(totalSeconds / 3600);
+  const mm = Math.floor((totalSeconds % 3600) / 60);
+  const ss = totalSeconds % 60;
   const progress = Math.min(elapsedHours / protocol.targetHours, 1);
 
   return (
@@ -41,9 +42,10 @@ export function TodayFastSnapshot({
       <div className="space-y-2">
         <p className="font-mono text-3xl font-semibold tabular-nums">
           {hh}
-          <span className="text-xl text-muted-foreground">h </span>
+          <span className="text-xl text-muted-foreground">:</span>
           {mm.toString().padStart(2, "0")}
-          <span className="text-xl text-muted-foreground">m</span>
+          <span className="text-xl text-muted-foreground">:</span>
+          {ss.toString().padStart(2, "0")}
         </p>
         <div className="flex items-center justify-between gap-2 text-sm">
           <span className="font-medium" style={{ color: phase.color }}>

@@ -9,8 +9,12 @@ import {
   getProtocol,
   type ProtocolSlug,
 } from "@/lib/fasting/protocols";
-import { stopFast, changeActiveFastProtocol } from "@/lib/fasting/actions";
-import { CheckCircle2 } from "lucide-react";
+import {
+  stopFast,
+  changeActiveFastProtocol,
+  updateFastStartTime,
+} from "@/lib/fasting/actions";
+import { CheckCircle2, Pencil } from "lucide-react";
 
 interface ActiveFastCardProps {
   fastId: string;
@@ -26,12 +30,22 @@ export function ActiveFastCard({
   const [now, setNow] = useState(() => Date.now());
   const [confirmingStop, setConfirmingStop] = useState(false);
   const [showProtocolPicker, setShowProtocolPicker] = useState(false);
+  const [showStartEditor, setShowStartEditor] = useState(false);
+  const [startTimeDraft, setStartTimeDraft] = useState(() =>
+    toLocalInputValue(startedAt),
+  );
+  const [editError, setEditError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(id);
   }, []);
+
+  // Resync the draft if the server-provided startedAt changes
+  useEffect(() => {
+    setStartTimeDraft(toLocalInputValue(startedAt));
+  }, [startedAt]);
 
   // Auto-cancel stop confirmation after 5s
   useEffect(() => {
@@ -61,6 +75,27 @@ export function ActiveFastCard({
     setShowProtocolPicker(false);
     startTransition(async () => {
       await changeActiveFastProtocol(fastId, slug);
+    });
+  }
+
+  function handleSaveStartTime() {
+    setEditError(null);
+    const localDate = new Date(startTimeDraft);
+    if (Number.isNaN(localDate.getTime())) {
+      setEditError("Invalid date.");
+      return;
+    }
+    if (localDate.getTime() > Date.now()) {
+      setEditError("Start time can't be in the future.");
+      return;
+    }
+    startTransition(async () => {
+      const res = await updateFastStartTime(fastId, localDate.toISOString());
+      if (!res.ok) {
+        setEditError(res.error);
+      } else {
+        setShowStartEditor(false);
+      }
     });
   }
 
@@ -128,7 +163,7 @@ export function ActiveFastCard({
           onClick={handleStop}
         >
           {pending
-            ? "Ending…"
+            ? "Saving…"
             : confirmingStop
               ? "Tap again to end fast"
               : targetReached
@@ -136,11 +171,76 @@ export function ActiveFastCard({
                 : "End early"}
         </Button>
 
-        <p className="text-xs text-muted-foreground">
-          Started {formatStartedAt(startedAtMs)}
-        </p>
+        <div className="flex w-full items-center justify-center gap-2 text-xs text-muted-foreground">
+          <span>Started {formatStartedAt(startedAtMs)}</span>
+          <button
+            type="button"
+            onClick={() => setShowStartEditor((v) => !v)}
+            className="inline-flex items-center gap-1 underline-offset-2 hover:underline"
+          >
+            <Pencil className="h-3 w-3" /> edit
+          </button>
+        </div>
+
+        {showStartEditor && (
+          <div className="w-full space-y-2 rounded-lg border border-border bg-muted/30 p-3">
+            <label
+              htmlFor="start-time"
+              className="text-xs font-medium text-muted-foreground"
+            >
+              Backdate start time
+            </label>
+            <input
+              id="start-time"
+              type="datetime-local"
+              value={startTimeDraft}
+              onChange={(e) => setStartTimeDraft(e.target.value)}
+              max={toLocalInputValue(new Date().toISOString())}
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            />
+            {editError && (
+              <p className="text-xs text-destructive">{editError}</p>
+            )}
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                className="flex-1"
+                disabled={pending}
+                onClick={handleSaveStartTime}
+              >
+                {pending ? "Saving…" : "Save"}
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="flex-1"
+                disabled={pending}
+                onClick={() => {
+                  setShowStartEditor(false);
+                  setEditError(null);
+                  setStartTimeDraft(toLocalInputValue(startedAt));
+                }}
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
+  );
+}
+
+/**
+ * Convert an ISO string to the format datetime-local inputs expect:
+ * "YYYY-MM-DDTHH:MM" in the user's local timezone.
+ */
+function toLocalInputValue(iso: string): string {
+  const d = new Date(iso);
+  const pad = (n: number) => n.toString().padStart(2, "0");
+  return (
+    `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}` +
+    `T${pad(d.getHours())}:${pad(d.getMinutes())}`
   );
 }
 

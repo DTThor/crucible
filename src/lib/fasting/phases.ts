@@ -30,7 +30,7 @@ export const PHASES: Phase[] = [
     short: "Fed",
     fromHours: 0,
     toHours: 4,
-    color: "hsl(215 16% 47%)", // slate
+    color: "hsl(215 20% 70%)", // slate — bright
     description:
       "Insulin elevated. Glucose from your last meal is fueling cells; excess goes to glycogen and fat stores. Fat-burning is suppressed.",
   },
@@ -40,7 +40,7 @@ export const PHASES: Phase[] = [
     short: "Early",
     fromHours: 4,
     toHours: 12,
-    color: "hsl(217 91% 60%)", // blue
+    color: "hsl(212 95% 68%)", // blue — bright
     description:
       "Insulin falling. Liver glycogen begins mobilizing to keep blood glucose stable. Metabolism shifting toward maintenance.",
   },
@@ -50,7 +50,7 @@ export const PHASES: Phase[] = [
     short: "Glycogen",
     fromHours: 12,
     toHours: 16,
-    color: "hsl(173 80% 40%)", // teal
+    color: "hsl(173 80% 55%)", // teal — bright
     description:
       "Glycogen tank running low. Body preparing to switch fuels. Hunger often spikes here, then passes.",
   },
@@ -60,7 +60,7 @@ export const PHASES: Phase[] = [
     short: "Switch",
     fromHours: 16,
     toHours: 24,
-    color: "hsl(142 71% 45%)", // green
+    color: "hsl(142 76% 56%)", // green — bright
     description:
       "Lipolysis ramps up. Ketones begin to rise. Autophagy initiating — cellular cleanup starts. This is where most of the daily IF benefits live.",
   },
@@ -70,7 +70,7 @@ export const PHASES: Phase[] = [
     short: "Ketosis",
     fromHours: 24,
     toHours: 36,
-    color: "hsl(38 92% 50%)", // amber
+    color: "hsl(43 96% 60%)", // amber — bright
     description:
       "Meaningful ketosis. Growth hormone ~5× baseline (preserves lean mass). Autophagy fully active. Mental clarity often peaks.",
   },
@@ -80,7 +80,7 @@ export const PHASES: Phase[] = [
     short: "Autophagy",
     fromHours: 36,
     toHours: 48,
-    color: "hsl(20 90% 50%)", // orange
+    color: "hsl(24 94% 62%)", // orange — bright
     description:
       "Cellular cleanup peaking. Damaged proteins recycled. Immune cell turnover. Deep fat oxidation. Where 36-hour fasts pay off.",
   },
@@ -90,7 +90,7 @@ export const PHASES: Phase[] = [
     short: "Extended",
     fromHours: 48,
     toHours: 72,
-    color: "hsl(0 84% 60%)", // red
+    color: "hsl(0 92% 68%)", // red — bright
     description:
       "Sustained ketosis. Salt + electrolytes recommended (Fung specifically endorses bone broth for fasts beyond 36h).",
   },

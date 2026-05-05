@@ -79,6 +79,53 @@ export async function stopFast(
   return ok();
 }
 
+export async function updateFastStartTime(
+  fastId: string,
+  newStartTimeISO: string,
+): Promise<ActionResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const newStart = new Date(newStartTimeISO);
+  if (Number.isNaN(newStart.getTime())) return fail("Invalid start time.");
+  if (newStart.getTime() > Date.now()) {
+    return fail("Start time can't be in the future.");
+  }
+
+  // Recompute planned_end_at from new start + current protocol's target.
+  const { data: existing } = await supabase
+    .from("fasts")
+    .select("protocol_slug")
+    .eq("id", fastId)
+    .single();
+  if (!existing) return fail("Fast not found.");
+
+  const protocol = getProtocol(existing.protocol_slug as ProtocolSlug);
+  const newPlannedEnd = new Date(
+    newStart.getTime() + protocol.targetHours * 3_600_000,
+  );
+
+  const { error } = await supabase
+    .from("fasts")
+    .update({
+      started_at: newStart.toISOString(),
+      planned_end_at: newPlannedEnd.toISOString(),
+    })
+    .eq("id", fastId)
+    .eq("status", "active");
+
+  if (error) {
+    console.error("updateFastStartTime error:", error);
+    return fail("Could not update start time.");
+  }
+
+  revalidatePath("/", "layout");
+  return ok();
+}
+
 export async function changeActiveFastProtocol(
   fastId: string,
   protocolSlug: ProtocolSlug,
