@@ -2,14 +2,19 @@
 
 import { useEffect, useState } from "react";
 import { Modal } from "@/components/modal";
+import { DateTimePicker, combineDateTime } from "@/components/date-time-picker";
 
 interface LogWeightModalProps {
   open: boolean;
   onClose: () => void;
-  onSave: (lb: number) => void;
+  onSave: (lb: number, loggedAtIso: string) => void;
   initialLb?: number;
   pending?: boolean;
   error?: string | null;
+}
+
+function dateOnly(d: Date): Date {
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate());
 }
 
 export function LogWeightModal({
@@ -23,10 +28,18 @@ export function LogWeightModal({
   const [value, setValue] = useState(() =>
     initialLb ? initialLb.toFixed(1) : "",
   );
+  // Time picker state — defaults to "now" each time the modal opens
+  const [day, setDay] = useState(() => dateOnly(new Date()));
+  const [hour, setHour] = useState(() => new Date().getHours());
+  const [minute, setMinute] = useState(() => new Date().getMinutes());
 
   useEffect(() => {
     if (open) {
       setValue(initialLb ? initialLb.toFixed(1) : "");
+      const now = new Date();
+      setDay(dateOnly(now));
+      setHour(now.getHours());
+      setMinute(now.getMinutes());
     }
   }, [open, initialLb]);
 
@@ -34,7 +47,9 @@ export function LogWeightModal({
     e.preventDefault();
     const lb = parseFloat(value);
     if (!Number.isFinite(lb) || lb <= 0) return;
-    onSave(lb);
+    let when = combineDateTime(day, hour, minute);
+    if (when.getTime() > Date.now()) when = new Date();
+    onSave(lb, when.toISOString());
   }
 
   return (
@@ -42,6 +57,7 @@ export function LogWeightModal({
       <form onSubmit={handleSubmit} className="space-y-4">
         <h2 className="text-center text-base font-semibold">Log Weight</h2>
 
+        {/* Weight input */}
         <div className="space-y-1">
           <label
             htmlFor="weight-input"
@@ -68,6 +84,25 @@ export function LogWeightModal({
               lb
             </span>
           </div>
+        </div>
+
+        {/* Time picker */}
+        <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-3">
+          <p className="text-center text-xs font-medium text-muted-foreground">
+            Logged at
+          </p>
+          <DateTimePicker
+            date={day}
+            hour={hour}
+            minute={minute}
+            onChange={(next) => {
+              setDay(next.date);
+              setHour(next.hour);
+              setMinute(next.minute);
+            }}
+            forbidFuture
+            compact
+          />
         </div>
 
         {error && (

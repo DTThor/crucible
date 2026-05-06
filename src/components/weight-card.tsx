@@ -27,10 +27,10 @@ export function WeightCard({ latest, weekAgo }: WeightCardProps) {
   const deltaLb =
     latestLb != null && weekAgoLb != null ? latestLb - weekAgoLb : null;
 
-  function handleSave(lb: number) {
+  function handleSave(lb: number, loggedAtIso: string) {
     setError(null);
     startTransition(async () => {
-      const res = await logWeight(lb);
+      const res = await logWeight(lb, loggedAtIso);
       if (!res.ok) {
         setError(res.error);
       } else {
