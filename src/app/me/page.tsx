@@ -17,7 +17,7 @@ import { getWorkoutDebugSnapshot } from "@/lib/training/debug";
 
 export const dynamic = "force-dynamic";
 
-const VERSION = "0.7.1";
+const VERSION = "0.7.2";
 
 export default async function MePage() {
   const user = await requireUser();

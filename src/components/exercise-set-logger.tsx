@@ -111,7 +111,7 @@ export function ExerciseSetLogger({
                   {s.reps ?? "—"}
                   {s.rpe != null && (
                     <span className="ml-2 text-muted-foreground">
-                      RPE {s.rpe}
+                      Diff {s.rpe}
                     </span>
                   )}
                 </span>

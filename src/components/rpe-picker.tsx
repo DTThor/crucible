@@ -28,9 +28,7 @@ export function RpePicker({ value, onChange, className }: RpePickerProps) {
   return (
     <div className={cn("space-y-1", className)}>
       <div className="flex items-center justify-between">
-        <p className="text-xs font-medium text-muted-foreground">
-          RPE (effort)
-        </p>
+        <p className="text-xs font-medium text-muted-foreground">Difficulty</p>
         {value != null && ANCHORS[value] && (
           <p className="text-xs italic text-muted-foreground">
             {ANCHORS[value]}
@@ -54,7 +52,7 @@ export function RpePicker({ value, onChange, className }: RpePickerProps) {
                   : "transparent",
                 color: isSelected ? color : "hsl(var(--muted-foreground))",
               }}
-              aria-label={`RPE ${n}${ANCHORS[n] ? ` — ${ANCHORS[n]}` : ""}`}
+              aria-label={`Difficulty ${n}${ANCHORS[n] ? ` — ${ANCHORS[n]}` : ""}`}
             >
               {n}
             </button>
