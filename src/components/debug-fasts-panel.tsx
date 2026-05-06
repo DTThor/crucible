@@ -1,11 +1,10 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { RefreshCw } from "lucide-react";
-import type { RawFast } from "@/lib/fasting/debug";
+import type { DebugSnapshot } from "@/lib/fasting/debug";
 
 interface DebugFastsPanelProps {
-  fasts: RawFast[];
+  snapshot: DebugSnapshot;
 }
 
 function formatTs(iso: string | null): string {
@@ -26,8 +25,11 @@ function statusColor(status: string): string {
   return "text-amber-400";
 }
 
-export function DebugFastsPanel({ fasts }: DebugFastsPanelProps) {
-  const router = useRouter();
+export function DebugFastsPanel({ snapshot }: DebugFastsPanelProps) {
+  // Hard-reload Refresh — bypasses every Next cache layer
+  function handleRefresh() {
+    if (typeof window !== "undefined") window.location.reload();
+  }
 
   return (
     <div className="space-y-2">
@@ -35,7 +37,7 @@ export function DebugFastsPanel({ fasts }: DebugFastsPanelProps) {
         <p className="font-medium">DB state (debug)</p>
         <button
           type="button"
-          onClick={() => router.refresh()}
+          onClick={handleRefresh}
           className="flex items-center gap-1 rounded-md border border-input px-2 py-1 text-xs hover:bg-accent"
         >
           <RefreshCw className="h-3 w-3" />
@@ -43,17 +45,26 @@ export function DebugFastsPanel({ fasts }: DebugFastsPanelProps) {
         </button>
       </div>
       <p className="text-xs text-muted-foreground">
-        Most recent {fasts.length} fast row(s) for your user, straight from the
-        database. Use this to verify what's actually persisted vs. what the UI
-        thinks.
+        Total fasts in DB: <span className="font-mono">{snapshot.totalCount}</span>{" "}
+        · auth uid suffix:{" "}
+        <span className="font-mono">{snapshot.userIdSuffix}</span>
       </p>
-      {fasts.length === 0 ? (
+      <p className="text-xs text-muted-foreground">
+        Showing most recent {snapshot.rows.length}. Refresh does a hard page
+        reload (no client cache).
+      </p>
+      {snapshot.error && (
+        <p className="rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+          DB error: {snapshot.error}
+        </p>
+      )}
+      {snapshot.rows.length === 0 && !snapshot.error ? (
         <p className="rounded-md border border-border bg-muted/30 px-3 py-2 text-xs">
           No fast rows.
         </p>
       ) : (
         <ul className="space-y-1.5 font-mono text-[10px]">
-          {fasts.map((f) => (
+          {snapshot.rows.map((f) => (
             <li
               key={f.id}
               className="rounded-md border border-border bg-muted/30 px-2 py-1.5"

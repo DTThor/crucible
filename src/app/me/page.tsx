@@ -7,15 +7,15 @@ import {
   DeleteAllFastsButton,
 } from "@/components/end-all-fasts-button";
 import { DebugFastsPanel } from "@/components/debug-fasts-panel";
-import { getRawRecentFasts } from "@/lib/fasting/debug";
+import { getDebugSnapshot } from "@/lib/fasting/debug";
 
 export const dynamic = "force-dynamic";
 
-const VERSION = "0.6.4";
+const VERSION = "0.6.5";
 
 export default async function MePage() {
   const user = await requireUser();
-  const rawFasts = await getRawRecentFasts(20);
+  const snapshot = await getDebugSnapshot(20);
 
   const sha = process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) ?? "local";
   const deployedAt = process.env.VERCEL_GIT_COMMIT_REF
@@ -75,7 +75,7 @@ export default async function MePage() {
 
         <Card>
           <CardContent className="space-y-2 py-5">
-            <DebugFastsPanel fasts={rawFasts} />
+            <DebugFastsPanel snapshot={snapshot} />
           </CardContent>
         </Card>
 
