@@ -22,7 +22,7 @@ export default async function TrainPage() {
   const subtitle = getTrainSubtitle(today.label, today.type);
 
   return (
-    <main className="space-y-5 pb-4 pt-4" style={{ paddingTop: "max(env(safe-area-inset-top), 1rem)" }}>
+    <div className="space-y-5 pt-4">
       {active ? (
         <>
           <TrainHomeHeader
@@ -37,6 +37,6 @@ export default async function TrainPage() {
           <HeroWorkoutCard today={today} />
         </>
       )}
-    </main>
+    </div>
   );
 }
