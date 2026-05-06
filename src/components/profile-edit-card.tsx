@@ -27,16 +27,17 @@ export function ProfileEditCard({
 }: ProfileEditCardProps) {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const [name, setName] = useState(initialDisplayName ?? "");
-  const [savedName, setSavedName] = useState(initialDisplayName ?? "");
+  const [name, setName] = useState("");
   const [avatarUrl, setAvatarUrl] = useState(initialAvatarUrl);
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
-  const dirty = name.trim() !== (savedName ?? "").trim();
+  const savedName = initialDisplayName?.trim() ?? "";
+  const canSave = name.trim().length > 0 && name.trim() !== savedName;
 
   function handleSaveName() {
+    if (!canSave) return;
     setError(null);
     setInfo(null);
     startTransition(async () => {
@@ -44,8 +45,23 @@ export function ProfileEditCard({
       if (!res.ok) {
         setError(res.error);
       } else {
-        setSavedName(name);
+        setName(""); // input clears so the new name shows as the placeholder
         setInfo("Name saved.");
+        router.refresh();
+      }
+    });
+  }
+
+  function handleRemoveName() {
+    setError(null);
+    setInfo(null);
+    startTransition(async () => {
+      const res = await updateDisplayName("");
+      if (!res.ok) {
+        setError(res.error);
+      } else {
+        setName("");
+        setInfo("Name removed.");
         router.refresh();
       }
     });
@@ -158,12 +174,24 @@ export function ProfileEditCard({
         />
 
         <div className="space-y-1.5">
-          <label
-            htmlFor="display-name"
-            className="text-xs font-medium text-muted-foreground"
-          >
-            Display name
-          </label>
+          <div className="flex items-baseline justify-between">
+            <label
+              htmlFor="display-name"
+              className="text-xs font-medium text-muted-foreground"
+            >
+              Display name
+            </label>
+            {savedName && (
+              <button
+                type="button"
+                onClick={handleRemoveName}
+                disabled={pending}
+                className="text-[10px] text-muted-foreground underline underline-offset-2 hover:text-destructive disabled:opacity-50"
+              >
+                Remove
+              </button>
+            )}
+          </div>
           <div className="flex gap-2">
             <input
               id="display-name"
@@ -171,18 +199,23 @@ export function ProfileEditCard({
               maxLength={60}
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="What should we call you?"
-              className="flex h-10 flex-1 rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              placeholder={savedName || "What should we call you?"}
+              className="flex h-10 flex-1 rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring placeholder:text-foreground/70"
             />
             <button
               type="button"
               onClick={handleSaveName}
-              disabled={pending || !dirty}
+              disabled={pending || !canSave}
               className="rounded-md bg-primary px-4 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
             >
               {pending ? "…" : "Save"}
             </button>
           </div>
+          {savedName && (
+            <p className="text-[10px] text-muted-foreground">
+              Type a new name above to update.
+            </p>
+          )}
         </div>
 
         {error && (

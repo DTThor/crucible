@@ -11,23 +11,28 @@ export interface Profile {
 
 export async function getProfile(): Promise<Profile | null> {
   noStore();
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return null;
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return null;
 
-  const { data, error } = await supabase
-    .from("profiles")
-    .select("user_id, display_name, avatar_url, units_weight, timezone")
-    .eq("user_id", user.id)
-    .maybeSingle();
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("user_id, display_name, avatar_url, units_weight, timezone")
+      .eq("user_id", user.id)
+      .maybeSingle();
 
-  if (error) {
-    console.error("getProfile error:", error);
+    if (error) {
+      console.error("getProfile error:", error);
+      return null;
+    }
+    return data;
+  } catch (e) {
+    console.error("getProfile threw:", e);
     return null;
   }
-  return data;
 }
 
 /**

@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 
 interface ProfileBadgeProps {
@@ -12,8 +15,9 @@ interface ProfileBadgeProps {
 }
 
 /**
- * Small avatar that's clickable to /me. Falls back to initials if the user
- * hasn't uploaded an avatar yet.
+ * Avatar that's clickable to /me. Always renders initials underneath; the
+ * uploaded image (if any) overlays on top once it loads. If the image
+ * fails for any reason, the initials show through naturally.
  */
 export function ProfileBadge({
   avatarUrl,
@@ -22,26 +26,36 @@ export function ProfileBadge({
   className,
   link = true,
 }: ProfileBadgeProps) {
+  const [errored, setErrored] = useState(false);
+
+  // Reset error state if the URL changes (new avatar uploaded).
+  useEffect(() => {
+    setErrored(false);
+  }, [avatarUrl]);
+
+  const showImg = !!avatarUrl && !errored;
+
   const inner = (
     <span
       className={cn(
-        "flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary/15 font-bold text-primary ring-2 ring-primary/40",
+        "relative flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary/15 font-bold text-primary ring-2 ring-primary/40 select-none",
         className,
       )}
       style={{ width: size, height: size, fontSize: size * 0.4 }}
       aria-label="Profile"
     >
-      {avatarUrl ? (
-        // Plain <img> is fine here; Next/Image would need a remotePatterns config.
+      {/* Initials are always rendered as the fallback layer. */}
+      <span aria-hidden>{initials}</span>
+      {showImg && (
         // eslint-disable-next-line @next/next/no-img-element
         <img
+          key={avatarUrl}
           src={avatarUrl}
           alt=""
-          className="h-full w-full object-cover"
+          className="absolute inset-0 h-full w-full object-cover"
           draggable={false}
+          onError={() => setErrored(true)}
         />
-      ) : (
-        initials
       )}
     </span>
   );

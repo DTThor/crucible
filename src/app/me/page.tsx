@@ -23,7 +23,7 @@ import {
 
 export const dynamic = "force-dynamic";
 
-const VERSION = "0.8.0";
+const VERSION = "0.8.2";
 
 export default async function MePage() {
   const user = await requireUser();
