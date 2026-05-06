@@ -16,6 +16,8 @@ interface PhaseRingProps {
   /** Optional pixel size for the SVG. Defaults to 320. */
   size?: number;
   className?: string;
+  /** When true, the playhead pulses with a glow. */
+  celebrating?: boolean;
 }
 
 /**
@@ -35,6 +37,7 @@ export function PhaseRing({
   targetHours,
   size = 320,
   className,
+  celebrating,
 }: PhaseRingProps) {
   const stroke = 12;
   // Reserve outer space for icon badges so they don't clip
@@ -154,7 +157,11 @@ export function PhaseRing({
           width: 36,
           height: 36,
           backgroundColor: currentPhase.color,
+          color: currentPhase.color,
           boxShadow: `0 0 18px 0 ${currentPhase.color}`,
+          animation: celebrating
+            ? "celebrate-playhead 1.4s ease-in-out infinite"
+            : undefined,
         }}
       >
         <PlayheadIcon size={18} strokeWidth={2.5} color="white" />

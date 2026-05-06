@@ -20,6 +20,10 @@ import {
   updateFastStartTime,
 } from "@/lib/fasting/actions";
 import { CheckCircle2 } from "lucide-react";
+import {
+  CelebrationBanner,
+  ConfettiBurst,
+} from "@/components/celebration";
 
 interface ActiveFastCardProps {
   fastId: string;
@@ -48,6 +52,10 @@ export function ActiveFastCard({
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
 
+  // Celebration state — fires confetti once on first goal-reached transition
+  const [hasCelebrated, setHasCelebrated] = useState(false);
+  const [confettiActive, setConfettiActive] = useState(false);
+
   const [pending, startTransition] = useTransition();
 
   // Tick the clock
@@ -67,6 +75,17 @@ export function ActiveFastCard({
   const protocol = getProtocol(localProtocolSlug);
   const targetReached = elapsedHours >= protocol.targetHours;
   const currentPhase = getCurrentPhase(elapsedHours);
+
+  // Fire confetti the first time goal is reached. Persists across this
+  // component's lifetime so it doesn't re-fire on every tick.
+  useEffect(() => {
+    if (targetReached && !hasCelebrated) {
+      setHasCelebrated(true);
+      setConfettiActive(true);
+      const id = setTimeout(() => setConfettiActive(false), 3500);
+      return () => clearTimeout(id);
+    }
+  }, [targetReached, hasCelebrated]);
 
   const plannedEndMs = localPlannedEndAt
     ? new Date(localPlannedEndAt).getTime()
@@ -150,13 +169,11 @@ export function ActiveFastCard({
       <PhaseRing
         elapsedHours={elapsedHours}
         targetHours={protocol.targetHours}
+        celebrating={targetReached}
       />
 
       {targetReached && (
-        <div className="flex items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary">
-          <CheckCircle2 className="h-3.5 w-3.5" />
-          <span>Goal reached</span>
-        </div>
+        <CelebrationBanner targetHours={protocol.targetHours} />
       )}
 
       <PhaseInfoCard phase={currentPhase} />
@@ -171,9 +188,13 @@ export function ActiveFastCard({
         type="button"
         onClick={() => setEndModalOpen(true)}
         disabled={pending}
-        className="w-full rounded-full border border-destructive/50 py-2.5 text-sm font-medium text-destructive hover:bg-destructive/10"
+        className={
+          targetReached
+            ? "w-full rounded-full bg-primary py-2.5 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/30 hover:bg-primary/90"
+            : "w-full rounded-full border border-destructive/50 py-2.5 text-sm font-medium text-destructive hover:bg-destructive/10"
+        }
       >
-        End Fast
+        {targetReached ? "Complete fast" : "End Fast"}
       </button>
 
       <EndFastModal
@@ -195,6 +216,8 @@ export function ActiveFastCard({
         pending={pending}
         error={editError}
       />
+
+      <ConfettiBurst active={confettiActive} />
     </div>
   );
 }
