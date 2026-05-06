@@ -7,6 +7,7 @@ import { TodayFastSnapshot } from "@/components/today-fast-snapshot";
 import { TodayWorkoutSnapshot } from "@/components/today-workout-snapshot";
 import { WaterQuickLog } from "@/components/water-quick-log";
 import { WeightCard } from "@/components/weight-card";
+import { ProfileBadge } from "@/components/profile-badge";
 import { getActiveFast } from "@/lib/fasting/queries";
 import { getTodayProtocol } from "@/lib/fasting/templates";
 import { PROTOCOLS } from "@/lib/fasting/protocols";
@@ -17,6 +18,11 @@ import {
 import { getTodayTraining } from "@/lib/training/templates";
 import { getRecentWaterLogs } from "@/lib/water/queries";
 import { getLatestWeight, getWeightAround } from "@/lib/weight/queries";
+import {
+  getProfile,
+  resolveInitials,
+  resolveName,
+} from "@/lib/profile/queries";
 
 const WEEKDAY = [
   "Sunday",
@@ -45,16 +51,23 @@ const MONTH = [
 export const dynamic = "force-dynamic";
 
 export default async function TodayPage() {
-  await requireUser();
+  const user = await requireUser();
 
-  const [active, activeWorkout, waterLogs, latestWeight, weekAgoWeight] =
-    await Promise.all([
-      getActiveFast(),
-      getActiveWorkout(),
-      getRecentWaterLogs(7),
-      getLatestWeight(),
-      getWeightAround(7),
-    ]);
+  const [
+    profile,
+    active,
+    activeWorkout,
+    waterLogs,
+    latestWeight,
+    weekAgoWeight,
+  ] = await Promise.all([
+    getProfile(),
+    getActiveFast(),
+    getActiveWorkout(),
+    getRecentWaterLogs(7),
+    getLatestWeight(),
+    getWeightAround(7),
+  ]);
 
   const activeWorkoutSets = activeWorkout
     ? await getWorkoutSets(activeWorkout.id)
@@ -64,12 +77,25 @@ export default async function TodayPage() {
   const todayProtocolName = PROTOCOLS[todayProtocol].name;
   const todayTraining = getTodayTraining();
 
+  const name = resolveName(profile, user.email ?? "");
+  const initials = resolveInitials(name);
+
   const now = new Date();
   const subtitle = `${WEEKDAY[now.getDay()]} · ${MONTH[now.getMonth()]} ${now.getDate()}`;
 
   return (
     <>
-      <PageHeader title="Today" subtitle={subtitle} />
+      <PageHeader
+        title="Today"
+        subtitle={subtitle}
+        action={
+          <ProfileBadge
+            avatarUrl={profile?.avatar_url ?? null}
+            initials={initials}
+            size={36}
+          />
+        }
+      />
 
       <div className="space-y-3">
         <Card>

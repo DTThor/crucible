@@ -1,10 +1,12 @@
 import { cn } from "@/lib/utils";
+import { ProfileBadge } from "@/components/profile-badge";
 import type { DayStripEntry } from "@/lib/training/copy";
 
 interface TrainHomeHeaderProps {
   greeting: string;
   name: string;
   initials: string;
+  avatarUrl: string | null;
   subtitle?: string;
   dayStrip: DayStripEntry[];
 }
@@ -17,15 +19,18 @@ export function TrainHomeHeader({
   greeting,
   name,
   initials,
+  avatarUrl,
   subtitle,
   dayStrip,
 }: TrainHomeHeaderProps) {
   return (
     <div className="space-y-4">
       <div className="flex items-start gap-3">
-        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary/15 text-base font-bold text-primary ring-2 ring-primary/40">
-          {initials}
-        </div>
+        <ProfileBadge
+          avatarUrl={avatarUrl}
+          initials={initials}
+          size={48}
+        />
         <div className="min-w-0 flex-1">
           <p className="text-lg font-semibold leading-tight text-primary">
             {greeting}, {name}

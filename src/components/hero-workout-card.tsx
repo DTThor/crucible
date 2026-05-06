@@ -160,7 +160,7 @@ export function HeroWorkoutCard({ today }: HeroWorkoutCardProps) {
           <Dumbbell className="h-5 w-5" />
         </div>
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold">Custom workout</p>
+          <p className="text-sm font-semibold">Choose a different workout</p>
           <p className="text-xs text-muted-foreground">
             Pick any session — lift, GTX, cardio, recovery
           </p>

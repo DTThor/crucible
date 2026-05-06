@@ -12,19 +12,29 @@ import {
 } from "@/components/end-all-workouts-button";
 import { DebugFastsPanel } from "@/components/debug-fasts-panel";
 import { DebugWorkoutsPanel } from "@/components/debug-workouts-panel";
+import { ProfileEditCard } from "@/components/profile-edit-card";
 import { getDebugSnapshot } from "@/lib/fasting/debug";
 import { getWorkoutDebugSnapshot } from "@/lib/training/debug";
+import {
+  getProfile,
+  resolveInitials,
+  resolveName,
+} from "@/lib/profile/queries";
 
 export const dynamic = "force-dynamic";
 
-const VERSION = "0.7.4";
+const VERSION = "0.8.0";
 
 export default async function MePage() {
   const user = await requireUser();
-  const [fastSnapshot, workoutSnapshot] = await Promise.all([
+  const [profile, fastSnapshot, workoutSnapshot] = await Promise.all([
+    getProfile(),
     getDebugSnapshot(20),
     getWorkoutDebugSnapshot(10),
   ]);
+
+  const fallbackName = resolveName(profile, user.email ?? "");
+  const initials = resolveInitials(fallbackName);
 
   const sha = process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) ?? "local";
   const deployedAt = process.env.VERCEL_GIT_COMMIT_REF
@@ -35,14 +45,13 @@ export default async function MePage() {
     <>
       <PageHeader title="Me" />
       <div className="space-y-4">
-        <Card>
-          <CardContent className="py-6">
-            <p className="text-xs uppercase tracking-wide text-muted-foreground">
-              Account
-            </p>
-            <p className="mt-1 font-medium">{user.email}</p>
-          </CardContent>
-        </Card>
+        <ProfileEditCard
+          email={user.email ?? ""}
+          userId={user.id}
+          initialDisplayName={profile?.display_name ?? null}
+          initialAvatarUrl={profile?.avatar_url ?? null}
+          initials={initials}
+        />
 
         <Card>
           <CardContent className="flex items-center justify-between py-5">
@@ -73,8 +82,7 @@ export default async function MePage() {
             <div>
               <p className="font-medium">Workout cleanup</p>
               <p className="text-sm text-muted-foreground">
-                Force-end any workouts marked active. Use if a workout looks
-                stuck or you forgot to end one.
+                Force-end any workouts marked active.
               </p>
             </div>
             <EndAllWorkoutsButton />
@@ -98,8 +106,7 @@ export default async function MePage() {
             <div>
               <p className="font-medium">Reset workout data</p>
               <p className="text-sm text-muted-foreground">
-                Permanently delete every workout and set in your history. Cannot
-                be undone.
+                Permanently delete every workout and set in your history.
               </p>
             </div>
             <DeleteAllWorkoutsButton />

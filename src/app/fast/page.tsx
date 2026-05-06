@@ -7,11 +7,17 @@ import { StartFastCard } from "@/components/start-fast-card";
 import { FastSummaryCard } from "@/components/fast-summary-card";
 import { WaterQuickLog } from "@/components/water-quick-log";
 import { WeightCard } from "@/components/weight-card";
+import { ProfileBadge } from "@/components/profile-badge";
 import { getActiveFast, getFastById } from "@/lib/fasting/queries";
 import { getTodayProtocol } from "@/lib/fasting/templates";
 import { PROTOCOLS } from "@/lib/fasting/protocols";
 import { getRecentWaterLogs } from "@/lib/water/queries";
 import { getLatestWeight, getWeightAround } from "@/lib/weight/queries";
+import {
+  getProfile,
+  resolveInitials,
+  resolveName,
+} from "@/lib/profile/queries";
 
 export const dynamic = "force-dynamic";
 
@@ -20,20 +26,29 @@ interface FastPageProps {
 }
 
 export default async function FastPage({ searchParams }: FastPageProps) {
-  await requireUser();
+  const user = await requireUser();
   const { ended: endedFastId } = await searchParams;
 
-  const [active, waterLogs, latestWeight, weekAgoWeight, justEnded] =
-    await Promise.all([
-      getActiveFast(),
-      getRecentWaterLogs(7),
-      getLatestWeight(),
-      getWeightAround(7),
-      endedFastId ? getFastById(endedFastId) : Promise.resolve(null),
-    ]);
+  const [
+    profile,
+    active,
+    waterLogs,
+    latestWeight,
+    weekAgoWeight,
+    justEnded,
+  ] = await Promise.all([
+    getProfile(),
+    getActiveFast(),
+    getRecentWaterLogs(7),
+    getLatestWeight(),
+    getWeightAround(7),
+    endedFastId ? getFastById(endedFastId) : Promise.resolve(null),
+  ]);
 
   const todayProtocol = getTodayProtocol();
   const todayName = PROTOCOLS[todayProtocol].name;
+  const name = resolveName(profile, user.email ?? "");
+  const initials = resolveInitials(name);
 
   // Show the summary if the URL has ?ended= and the fast is actually ended
   const showSummary =
@@ -51,6 +66,13 @@ export default async function FastPage({ searchParams }: FastPageProps) {
             : active
               ? "In progress"
               : `Today's plan: ${todayName}`
+        }
+        action={
+          <ProfileBadge
+            avatarUrl={profile?.avatar_url ?? null}
+            initials={initials}
+            size={36}
+          />
         }
       />
 

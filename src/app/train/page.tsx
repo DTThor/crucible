@@ -4,7 +4,6 @@ import { HeroWorkoutCard } from "@/components/hero-workout-card";
 import { TrainHomeHeader } from "@/components/train-home-header";
 import {
   buildDayStrip,
-  deriveName,
   getGreeting,
   getTrainSubtitle,
 } from "@/lib/training/copy";
@@ -13,21 +12,24 @@ import {
   getWorkoutSets,
 } from "@/lib/training/queries";
 import { getTodayTraining } from "@/lib/training/templates";
+import { getProfile, resolveInitials, resolveName } from "@/lib/profile/queries";
 
 export const dynamic = "force-dynamic";
 
 export default async function TrainPage() {
   const user = await requireUser();
-
-  const active = await getActiveWorkout();
+  const [profile, active] = await Promise.all([
+    getProfile(),
+    getActiveWorkout(),
+  ]);
   const sets = active ? await getWorkoutSets(active.id) : [];
+
   const today = getTodayTraining();
   const subtitle = getTrainSubtitle(today.label, today.type);
 
-  // Compute the header data server-side so the component can stay pure.
   const now = new Date();
-  const name = deriveName(user.email ?? "");
-  const initials = name.charAt(0).toUpperCase();
+  const name = resolveName(profile, user.email ?? "");
+  const initials = resolveInitials(name);
   const greeting = getGreeting(now);
   const dayStrip = buildDayStrip(now);
 
@@ -37,6 +39,7 @@ export default async function TrainPage() {
         greeting={greeting}
         name={name}
         initials={initials}
+        avatarUrl={profile?.avatar_url ?? null}
         subtitle={active ? "Workout in progress" : subtitle}
         dayStrip={dayStrip}
       />
