@@ -4,11 +4,17 @@ import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Timer, Dumbbell } from "lucide-react";
 import { TodayFastSnapshot } from "@/components/today-fast-snapshot";
+import { TodayWorkoutSnapshot } from "@/components/today-workout-snapshot";
 import { WaterQuickLog } from "@/components/water-quick-log";
 import { WeightCard } from "@/components/weight-card";
 import { getActiveFast } from "@/lib/fasting/queries";
 import { getTodayProtocol } from "@/lib/fasting/templates";
 import { PROTOCOLS } from "@/lib/fasting/protocols";
+import {
+  getActiveWorkout,
+  getWorkoutSets,
+} from "@/lib/training/queries";
+import { getTodayTraining } from "@/lib/training/templates";
 import { getRecentWaterLogs } from "@/lib/water/queries";
 import { getLatestWeight, getWeightAround } from "@/lib/weight/queries";
 
@@ -41,16 +47,22 @@ export const dynamic = "force-dynamic";
 export default async function TodayPage() {
   await requireUser();
 
-  // Fetch in parallel — they're independent
-  const [active, waterLogs, latestWeight, weekAgoWeight] = await Promise.all([
-    getActiveFast(),
-    getRecentWaterLogs(7),
-    getLatestWeight(),
-    getWeightAround(7),
-  ]);
+  const [active, activeWorkout, waterLogs, latestWeight, weekAgoWeight] =
+    await Promise.all([
+      getActiveFast(),
+      getActiveWorkout(),
+      getRecentWaterLogs(7),
+      getLatestWeight(),
+      getWeightAround(7),
+    ]);
+
+  const activeWorkoutSets = activeWorkout
+    ? await getWorkoutSets(activeWorkout.id)
+    : [];
 
   const todayProtocol = getTodayProtocol();
-  const todayName = PROTOCOLS[todayProtocol].name;
+  const todayProtocolName = PROTOCOLS[todayProtocol].name;
+  const todayTraining = getTodayTraining();
 
   const now = new Date();
   const subtitle = `${WEEKDAY[now.getDay()]} · ${MONTH[now.getMonth()]} ${now.getDate()}`;
@@ -79,7 +91,9 @@ export default async function TodayPage() {
                 className="block text-sm text-muted-foreground"
               >
                 Today's plan:{" "}
-                <span className="font-medium text-foreground">{todayName}</span>
+                <span className="font-medium text-foreground">
+                  {todayProtocolName}
+                </span>
                 . Start it from the Fast tab.
               </Link>
             )}
@@ -94,13 +108,27 @@ export default async function TodayPage() {
           <CardHeader className="pb-2 pt-4">
             <CardTitle className="flex items-center gap-2 text-sm font-medium">
               <Dumbbell className="h-4 w-4 text-primary" />
-              Today's training
+              {activeWorkout ? "Workout in progress" : "Today's training"}
             </CardTitle>
           </CardHeader>
           <CardContent className="pb-4">
-            <p className="text-sm text-muted-foreground">
-              Training program will appear here in Phase 2.
-            </p>
+            {activeWorkout ? (
+              <TodayWorkoutSnapshot
+                workout={activeWorkout}
+                setCount={activeWorkoutSets.length}
+              />
+            ) : (
+              <Link
+                href="/train"
+                className="block text-sm text-muted-foreground"
+              >
+                Today's plan:{" "}
+                <span className="font-medium text-foreground">
+                  {todayTraining.label}
+                </span>
+                . Start it from the Train tab.
+              </Link>
+            )}
           </CardContent>
         </Card>
       </div>

@@ -11,7 +11,7 @@ import { getDebugSnapshot } from "@/lib/fasting/debug";
 
 export const dynamic = "force-dynamic";
 
-const VERSION = "0.6.5";
+const VERSION = "0.7.0";
 
 export default async function MePage() {
   const user = await requireUser();
