@@ -20,7 +20,7 @@ import { CheckCircle2, Pencil } from "lucide-react";
 interface ActiveFastCardProps {
   fastId: string;
   protocolSlug: string;
-  startedAt: string; // ISO timestamp
+  startedAt: string; // ISO timestamp from server
 }
 
 export function ActiveFastCard({
@@ -29,7 +29,17 @@ export function ActiveFastCard({
   startedAt,
 }: ActiveFastCardProps) {
   const router = useRouter();
+
+  // ── Optimistic local state ────────────────────────────────────────
+  // We mirror the props so the UI can update instantly on save/end,
+  // before the server action + router.refresh() round-trip completes.
+  // useEffects below sync local state back to props when they change
+  // (e.g. data refresh from another tab).
   const [now, setNow] = useState(() => Date.now());
+  const [localStartedAt, setLocalStartedAt] = useState(startedAt);
+  const [localProtocolSlug, setLocalProtocolSlug] = useState(protocolSlug);
+  const [localEnded, setLocalEnded] = useState(false);
+
   const [confirmingStop, setConfirmingStop] = useState(false);
   const [showProtocolPicker, setShowProtocolPicker] = useState(false);
   const [showStartEditor, setShowStartEditor] = useState(false);
@@ -39,15 +49,20 @@ export function ActiveFastCard({
   const [editError, setEditError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
+  // Tick the clock every second
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(id);
   }, []);
 
-  // Resync the draft if the server-provided startedAt changes
+  // Resync local state when server-provided values change.
   useEffect(() => {
+    setLocalStartedAt(startedAt);
     setStartTimeDraft(toLocalInputValue(startedAt));
   }, [startedAt]);
+  useEffect(() => {
+    setLocalProtocolSlug(protocolSlug);
+  }, [protocolSlug]);
 
   // Auto-cancel stop confirmation after 5s
   useEffect(() => {
@@ -56,17 +71,22 @@ export function ActiveFastCard({
     return () => clearTimeout(id);
   }, [confirmingStop]);
 
-  const startedAtMs = new Date(startedAt).getTime();
+  // ── Derived display values ────────────────────────────────────────
+  const startedAtMs = new Date(localStartedAt).getTime();
   const elapsedHours = Math.max(0, (now - startedAtMs) / 3_600_000);
-  const protocol = getProtocol(protocolSlug);
+  const protocol = getProtocol(localProtocolSlug);
   const targetReached = elapsedHours >= protocol.targetHours;
   const overshoot = Math.max(0, elapsedHours - protocol.targetHours);
 
+  // ── Handlers ──────────────────────────────────────────────────────
   function handleStop() {
     if (!confirmingStop) {
       setConfirmingStop(true);
       return;
     }
+    // Immediately render the "ended" state. Parent will re-render
+    // StartFastCard once the router refresh completes.
+    setLocalEnded(true);
     startTransition(async () => {
       const reason = targetReached ? "completed" : "broken_early";
       await stopFast(fastId, reason);
@@ -76,9 +96,15 @@ export function ActiveFastCard({
 
   function handleProtocolChange(slug: ProtocolSlug) {
     setShowProtocolPicker(false);
+    const previous = localProtocolSlug;
+    setLocalProtocolSlug(slug); // optimistic
     startTransition(async () => {
-      await changeActiveFastProtocol(fastId, slug);
-      router.refresh();
+      const res = await changeActiveFastProtocol(fastId, slug);
+      if (!res.ok) {
+        setLocalProtocolSlug(previous); // revert
+      } else {
+        router.refresh();
+      }
     });
   }
 
@@ -93,9 +119,13 @@ export function ActiveFastCard({
       setEditError("Start time can't be in the future.");
       return;
     }
+    const newIso = localDate.toISOString();
+    const previous = localStartedAt;
+    setLocalStartedAt(newIso); // optimistic — timer updates immediately
     startTransition(async () => {
-      const res = await updateFastStartTime(fastId, localDate.toISOString());
+      const res = await updateFastStartTime(fastId, newIso);
       if (!res.ok) {
+        setLocalStartedAt(previous); // revert
         setEditError(res.error);
       } else {
         setShowStartEditor(false);
@@ -104,6 +134,20 @@ export function ActiveFastCard({
     });
   }
 
+  // ── Ended-optimistic UI ───────────────────────────────────────────
+  if (localEnded) {
+    return (
+      <Card>
+        <CardContent className="flex flex-col items-center gap-3 py-12 text-center">
+          <CheckCircle2 className="h-10 w-10 text-primary" />
+          <p className="text-lg font-semibold">Fast ended</p>
+          <p className="text-sm text-muted-foreground">Refreshing…</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // ── Active fast UI ────────────────────────────────────────────────
   return (
     <Card>
       <CardContent className="flex flex-col items-center gap-4 py-8">
@@ -140,7 +184,7 @@ export function ActiveFastCard({
         {showProtocolPicker && (
           <div className="grid w-full grid-cols-3 gap-2">
             {PROTOCOL_OPTIONS.map((p) => {
-              const isCurrent = p.slug === protocolSlug;
+              const isCurrent = p.slug === localProtocolSlug;
               return (
                 <button
                   key={p.slug}
@@ -223,7 +267,7 @@ export function ActiveFastCard({
                 onClick={() => {
                   setShowStartEditor(false);
                   setEditError(null);
-                  setStartTimeDraft(toLocalInputValue(startedAt));
+                  setStartTimeDraft(toLocalInputValue(localStartedAt));
                 }}
               >
                 Cancel
