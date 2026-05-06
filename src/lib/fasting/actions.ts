@@ -127,6 +127,28 @@ export async function updateFastStartTime(
 }
 
 /**
+ * Permanently delete a fast. Used for cleaning up test/erroneous entries.
+ * RLS limits this to fasts owned by the authed user.
+ */
+export async function deleteFast(fastId: string): Promise<ActionResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const { error } = await supabase.from("fasts").delete().eq("id", fastId);
+
+  if (error) {
+    console.error("deleteFast error:", error);
+    return fail("Could not delete fast.");
+  }
+
+  revalidatePath("/", "layout");
+  return ok();
+}
+
+/**
  * Force-end every fast currently in 'active' status for the user.
  * Defensive cleanup for orphan fasts left from earlier testing or crashes.
  */

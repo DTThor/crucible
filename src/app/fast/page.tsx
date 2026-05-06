@@ -52,6 +52,7 @@ export default async function FastPage() {
 
         <Link
           href="/fast/history"
+          prefetch={false}
           className="flex items-center justify-between rounded-xl border border-border bg-card px-4 py-3 hover:bg-accent"
         >
           <span className="flex items-center gap-2 text-sm font-medium">
