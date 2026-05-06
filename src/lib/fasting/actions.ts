@@ -20,6 +20,10 @@ export type ActionResult =
   | { ok: true }
   | { ok: false; error: string };
 
+export type CountResult =
+  | { ok: true; count: number }
+  | { ok: false; error: string };
+
 const fail = (error: string): ActionResult => ({ ok: false, error });
 const ok = (): ActionResult => ({ ok: true });
 
@@ -232,45 +236,48 @@ export async function updateFastTimes(
 }
 
 /**
- * Force-end every fast still in 'active' status (regardless of ended_at).
- * Defensive cleanup for orphans.
+ * Force-end every fast still in 'active' status. Returns the number of
+ * rows updated so the caller can verify the action actually did something.
  */
-export async function endAllActiveFasts(): Promise<ActionResult> {
-  const { supabase } = await authedClient();
+export async function endAllActiveFasts(): Promise<CountResult> {
+  const { supabase, user } = await authedClient();
 
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("fasts")
     .update({ ended_at: new Date().toISOString(), status: "broken_early" })
-    .eq("status", "active");
+    .eq("user_id", user.id)
+    .eq("status", "active")
+    .select("id");
 
   if (error) {
     console.error("endAllActiveFasts error:", error);
-    return fail(error.message);
+    return { ok: false, error: error.message };
   }
 
   revalidatePath("/", "layout");
-  return ok();
+  return { ok: true, count: data?.length ?? 0 };
 }
 
 /**
- * NUCLEAR option — delete every fast for the current user. Useful for
- * wiping test data and starting clean.
+ * NUCLEAR — delete every fast for the current user. Returns the number
+ * of rows deleted so the caller can verify the action actually ran.
  */
-export async function deleteAllFasts(): Promise<ActionResult> {
+export async function deleteAllFasts(): Promise<CountResult> {
   const { supabase, user } = await authedClient();
 
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("fasts")
     .delete()
-    .eq("user_id", user.id);
+    .eq("user_id", user.id)
+    .select("id");
 
   if (error) {
     console.error("deleteAllFasts error:", error);
-    return fail(error.message);
+    return { ok: false, error: error.message };
   }
 
   revalidatePath("/", "layout");
-  return ok();
+  return { ok: true, count: data?.length ?? 0 };
 }
 
 export async function changeActiveFastProtocol(

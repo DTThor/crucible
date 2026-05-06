@@ -88,8 +88,13 @@ export function FastSummaryCard({
   }
 
   function handleDone() {
-    router.push("/fast");
-    router.refresh();
+    // Hard navigation forces a fresh fetch — bypasses any Next router cache
+    // and any prefetched RSC payloads that might still show ActiveFastCard.
+    if (typeof window !== "undefined") {
+      window.location.href = "/fast";
+    } else {
+      router.push("/fast");
+    }
   }
 
   const totalSeconds = Math.floor(durationHours * 3600);

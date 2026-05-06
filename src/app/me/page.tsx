@@ -11,7 +11,7 @@ import { getRawRecentFasts } from "@/lib/fasting/debug";
 
 export const dynamic = "force-dynamic";
 
-const VERSION = "0.6.3";
+const VERSION = "0.6.4";
 
 export default async function MePage() {
   const user = await requireUser();
