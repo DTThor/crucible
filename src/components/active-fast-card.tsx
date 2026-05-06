@@ -101,13 +101,21 @@ export function ActiveFastCard({
     : startedAtMs + protocol.targetHours * 3_600_000;
 
   // ── Handlers ──────────────────────────────────────────────────
+  const [stopError, setStopError] = useState<string | null>(null);
+
   function handleConfirmEnd() {
     setEndModalOpen(false);
+    setStopError(null);
     setLocalEnded(true);
     startTransition(async () => {
       const reason = targetReached ? "completed" : "broken_early";
-      await stopFast(fastId, reason);
-      // Navigate to the summary view for the just-ended fast.
+      const res = await stopFast(fastId, reason);
+      if (!res.ok) {
+        // Revert the optimistic "ended" state and surface the error
+        setLocalEnded(false);
+        setStopError(res.error);
+        return;
+      }
       router.replace(`/fast?ended=${fastId}`);
       router.refresh();
     });
@@ -207,6 +215,12 @@ export function ActiveFastCard({
       >
         {targetReached ? "Complete fast" : "End Fast"}
       </button>
+
+      {stopError && (
+        <p className="rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2 text-center text-xs text-destructive">
+          {stopError}
+        </p>
+      )}
 
       <EndFastModal
         open={endModalOpen}

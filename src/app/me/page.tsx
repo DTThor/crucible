@@ -2,16 +2,18 @@ import { requireUser } from "@/lib/auth-guard";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { ThemeToggle } from "./theme-toggle";
-import { EndAllFastsButton } from "@/components/end-all-fasts-button";
+import {
+  EndAllFastsButton,
+  DeleteAllFastsButton,
+} from "@/components/end-all-fasts-button";
 
 export const dynamic = "force-dynamic";
 
-const VERSION = "0.6.1";
+const VERSION = "0.6.2";
 
 export default async function MePage() {
   const user = await requireUser();
 
-  // Set by Vercel automatically; useful for verifying which deploy you're on.
   const sha = process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) ?? "local";
   const deployedAt = process.env.VERCEL_GIT_COMMIT_REF
     ? `${process.env.VERCEL_GIT_COMMIT_REF}@${sha}`
@@ -47,11 +49,24 @@ export default async function MePage() {
             <div>
               <p className="font-medium">Cleanup</p>
               <p className="text-sm text-muted-foreground">
-                Force-end every fast currently marked active. Use if the timer
-                is showing a stale fast from earlier testing.
+                Force-end any fasts marked active. Use if the timer shows a
+                stale fast or "fast already in progress" errors keep appearing.
               </p>
             </div>
             <EndAllFastsButton />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="space-y-3 py-5">
+            <div>
+              <p className="font-medium">Reset fast data</p>
+              <p className="text-sm text-muted-foreground">
+                Permanently delete every fast in your history. Useful for
+                wiping test data and starting clean. Cannot be undone.
+              </p>
+            </div>
+            <DeleteAllFastsButton />
           </CardContent>
         </Card>
 
