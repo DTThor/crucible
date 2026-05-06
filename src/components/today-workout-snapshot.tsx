@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Dumbbell } from "lucide-react";
-import type { ActiveWorkout, WorkoutSet } from "@/lib/training/queries";
+import type { ActiveWorkout } from "@/lib/training/queries";
 import { getTemplate } from "@/lib/training/templates";
 
 interface TodayWorkoutSnapshotProps {
@@ -15,12 +16,24 @@ export function TodayWorkoutSnapshot({
   workout,
   setCount,
 }: TodayWorkoutSnapshotProps) {
+  const router = useRouter();
   const [now, setNow] = useState(() => Date.now());
 
+  // 1s tick — matches the active-workout-card so the displayed minute is
+  // always in sync between Today and Train tabs.
   useEffect(() => {
-    const id = setInterval(() => setNow(Date.now()), 30_000);
+    const id = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(id);
   }, []);
+
+  // Bfcache fix
+  useEffect(() => {
+    function onPageShow(e: PageTransitionEvent) {
+      if (e.persisted) router.refresh();
+    }
+    window.addEventListener("pageshow", onPageShow);
+    return () => window.removeEventListener("pageshow", onPageShow);
+  }, [router]);
 
   const startedMs = new Date(workout.started_at).getTime();
   const elapsedMin = Math.max(0, Math.floor((now - startedMs) / 60_000));

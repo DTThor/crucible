@@ -21,7 +21,14 @@ export interface WorkoutSet {
   created_at: string;
 }
 
-/** The user's currently in-progress workout, or null. */
+/**
+ * The user's currently in-progress workout, or null.
+ *
+ * Tolerant of multiple active rows (which shouldn't happen but might via
+ * race conditions). Returns the most-recently-started one. Avoids
+ * `.maybeSingle()` because that errors on N>1 — we'd rather pick a winner
+ * than show "no workout" when one exists.
+ */
 export async function getActiveWorkout(): Promise<ActiveWorkout | null> {
   noStore();
   const supabase = await createClient();
@@ -31,14 +38,13 @@ export async function getActiveWorkout(): Promise<ActiveWorkout | null> {
     .eq("status", "active")
     .is("ended_at", null)
     .order("started_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .limit(1);
 
   if (error) {
     console.error("getActiveWorkout error:", error);
     return null;
   }
-  return data;
+  return data?.[0] ?? null;
 }
 
 /** All sets for a workout, ordered by set_number. */

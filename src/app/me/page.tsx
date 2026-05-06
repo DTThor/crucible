@@ -6,16 +6,25 @@ import {
   EndAllFastsButton,
   DeleteAllFastsButton,
 } from "@/components/end-all-fasts-button";
+import {
+  EndAllWorkoutsButton,
+  DeleteAllWorkoutsButton,
+} from "@/components/end-all-workouts-button";
 import { DebugFastsPanel } from "@/components/debug-fasts-panel";
+import { DebugWorkoutsPanel } from "@/components/debug-workouts-panel";
 import { getDebugSnapshot } from "@/lib/fasting/debug";
+import { getWorkoutDebugSnapshot } from "@/lib/training/debug";
 
 export const dynamic = "force-dynamic";
 
-const VERSION = "0.7.0";
+const VERSION = "0.7.1";
 
 export default async function MePage() {
   const user = await requireUser();
-  const snapshot = await getDebugSnapshot(20);
+  const [fastSnapshot, workoutSnapshot] = await Promise.all([
+    getDebugSnapshot(20),
+    getWorkoutDebugSnapshot(10),
+  ]);
 
   const sha = process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) ?? "local";
   const deployedAt = process.env.VERCEL_GIT_COMMIT_REF
@@ -50,10 +59,9 @@ export default async function MePage() {
         <Card>
           <CardContent className="space-y-3 py-5">
             <div>
-              <p className="font-medium">Cleanup</p>
+              <p className="font-medium">Fast cleanup</p>
               <p className="text-sm text-muted-foreground">
-                Force-end any fasts marked active. Use if the timer shows a
-                stale fast or "fast already in progress" errors keep appearing.
+                Force-end any fasts marked active. Use if a fast looks stuck.
               </p>
             </div>
             <EndAllFastsButton />
@@ -63,10 +71,22 @@ export default async function MePage() {
         <Card>
           <CardContent className="space-y-3 py-5">
             <div>
+              <p className="font-medium">Workout cleanup</p>
+              <p className="text-sm text-muted-foreground">
+                Force-end any workouts marked active. Use if a workout looks
+                stuck or you forgot to end one.
+              </p>
+            </div>
+            <EndAllWorkoutsButton />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="space-y-3 py-5">
+            <div>
               <p className="font-medium">Reset fast data</p>
               <p className="text-sm text-muted-foreground">
-                Permanently delete every fast in your history. Useful for
-                wiping test data and starting clean. Cannot be undone.
+                Permanently delete every fast in your history. Cannot be undone.
               </p>
             </div>
             <DeleteAllFastsButton />
@@ -74,8 +94,27 @@ export default async function MePage() {
         </Card>
 
         <Card>
+          <CardContent className="space-y-3 py-5">
+            <div>
+              <p className="font-medium">Reset workout data</p>
+              <p className="text-sm text-muted-foreground">
+                Permanently delete every workout and set in your history. Cannot
+                be undone.
+              </p>
+            </div>
+            <DeleteAllWorkoutsButton />
+          </CardContent>
+        </Card>
+
+        <Card>
           <CardContent className="space-y-2 py-5">
-            <DebugFastsPanel snapshot={snapshot} />
+            <DebugFastsPanel snapshot={fastSnapshot} />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="space-y-2 py-5">
+            <DebugWorkoutsPanel snapshot={workoutSnapshot} />
           </CardContent>
         </Card>
 

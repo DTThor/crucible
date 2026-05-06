@@ -11,10 +11,13 @@ import {
   deleteSet,
   endWorkout,
   abandonWorkout,
+  updateWorkoutStartTime,
 } from "@/lib/training/actions";
 import { getExercise } from "@/lib/training/exercises";
 import { getTemplate } from "@/lib/training/templates";
 import type { ActiveWorkout, WorkoutSet } from "@/lib/training/queries";
+import { EditWorkoutStartTimeModal } from "@/components/edit-workout-start-time-modal";
+import { Pencil } from "lucide-react";
 
 interface ActiveWorkoutCardProps {
   workout: ActiveWorkout;
@@ -28,9 +31,12 @@ export function ActiveWorkoutCard({
   const router = useRouter();
   const [now, setNow] = useState(() => Date.now());
   const [sets, setSets] = useState<WorkoutSet[]>(initialSets);
+  const [localStartedAt, setLocalStartedAt] = useState(workout.started_at);
   const [pending, startTransition] = useTransition();
   const [endModalOpen, setEndModalOpen] = useState(false);
   const [abandonModalOpen, setAbandonModalOpen] = useState(false);
+  const [editStartOpen, setEditStartOpen] = useState(false);
+  const [editStartError, setEditStartError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -39,6 +45,7 @@ export function ActiveWorkoutCard({
   }, []);
 
   useEffect(() => setSets(initialSets), [initialSets]);
+  useEffect(() => setLocalStartedAt(workout.started_at), [workout.started_at]);
 
   // bfcache fix
   useEffect(() => {
@@ -49,7 +56,7 @@ export function ActiveWorkoutCard({
     return () => window.removeEventListener("pageshow", onPageShow);
   }, [router]);
 
-  const startedMs = new Date(workout.started_at).getTime();
+  const startedMs = new Date(localStartedAt).getTime();
   const elapsedSec = Math.max(0, Math.floor((now - startedMs) / 1000));
   const elapsedH = Math.floor(elapsedSec / 3600);
   const elapsedM = Math.floor((elapsedSec % 3600) / 60);
@@ -137,6 +144,22 @@ export function ActiveWorkoutCard({
     });
   }
 
+  function handleSaveStartTime(newIso: string) {
+    setEditStartError(null);
+    const previous = localStartedAt;
+    setLocalStartedAt(newIso);
+    startTransition(async () => {
+      const res = await updateWorkoutStartTime(workout.id, newIso);
+      if (!res.ok) {
+        setLocalStartedAt(previous);
+        setEditStartError(res.error);
+      } else {
+        setEditStartOpen(false);
+        router.refresh();
+      }
+    });
+  }
+
   function handleAbandon() {
     setAbandonModalOpen(false);
     setActionError(null);
@@ -165,8 +188,17 @@ export function ActiveWorkoutCard({
                     workout.type.charAt(0).toUpperCase() +
                       workout.type.slice(1)}
                 </p>
-                <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                  {elapsedDisplay} elapsed
+                <p className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-muted-foreground">
+                  <span>{elapsedDisplay} elapsed</span>
+                  <button
+                    type="button"
+                    onClick={() => setEditStartOpen(true)}
+                    className="inline-flex items-center gap-0.5 hover:text-foreground"
+                    aria-label="Edit workout start time"
+                  >
+                    <Pencil className="h-2.5 w-2.5" />
+                    edit
+                  </button>
                 </p>
               </div>
             </div>
@@ -257,6 +289,18 @@ export function ActiveWorkoutCard({
           </button>
         </div>
       </Modal>
+
+      <EditWorkoutStartTimeModal
+        open={editStartOpen}
+        onClose={() => {
+          setEditStartOpen(false);
+          setEditStartError(null);
+        }}
+        onSave={handleSaveStartTime}
+        initialIso={localStartedAt}
+        pending={pending}
+        error={editStartError}
+      />
 
       <Modal
         open={abandonModalOpen}

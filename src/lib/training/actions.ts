@@ -189,3 +189,48 @@ export async function endAllActiveWorkouts(): Promise<{
   revalidatePath("/", "layout");
   return { ok: true, count: data?.length ?? 0 };
 }
+
+export async function deleteAllWorkouts(): Promise<{
+  ok: boolean;
+  count: number;
+  error?: string;
+}> {
+  const { supabase, user } = await authedClient();
+  const { data, error } = await supabase
+    .from("workouts")
+    .delete()
+    .eq("user_id", user.id)
+    .select("id");
+
+  if (error) return { ok: false, count: 0, error: error.message };
+  revalidatePath("/", "layout");
+  return { ok: true, count: data?.length ?? 0 };
+}
+
+/**
+ * Update started_at on the active workout. Doesn't shift any of the
+ * existing set timestamps — the user is just correcting when they began.
+ */
+export async function updateWorkoutStartTime(
+  workoutId: string,
+  newStartIso: string,
+): Promise<ActionResult> {
+  const { supabase } = await authedClient();
+
+  const newStart = new Date(newStartIso);
+  if (Number.isNaN(newStart.getTime())) return fail("Invalid date.");
+  if (newStart.getTime() > Date.now())
+    return fail("Start time can't be in the future.");
+
+  const { error } = await supabase
+    .from("workouts")
+    .update({ started_at: newStart.toISOString() })
+    .eq("id", workoutId);
+
+  if (error) {
+    console.error("updateWorkoutStartTime error:", error);
+    return fail(error.message);
+  }
+  revalidatePath("/", "layout");
+  return { ok: true };
+}

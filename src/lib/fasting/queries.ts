@@ -38,9 +38,9 @@ export async function getFastById(id: string): Promise<FastById | null> {
 /**
  * The user's currently active fast, or null if none.
  *
- * Active is strictly defined: status='active' AND ended_at IS NULL.
- * The ended_at filter guards against inconsistent rows where status
- * never got cleared (e.g. an action raced or partially failed).
+ * Strict: status='active' AND ended_at IS NULL. Tolerant of multi-row by
+ * picking the most recent (.maybeSingle errors on N>1 which would
+ * incorrectly hide a real active fast).
  */
 export async function getActiveFast(): Promise<ActiveFast | null> {
   const supabase = await createClient();
@@ -50,12 +50,11 @@ export async function getActiveFast(): Promise<ActiveFast | null> {
     .eq("status", "active")
     .is("ended_at", null)
     .order("started_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .limit(1);
 
   if (error) {
     console.error("getActiveFast error:", error);
     return null;
   }
-  return data;
+  return data?.[0] ?? null;
 }
