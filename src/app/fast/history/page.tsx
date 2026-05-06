@@ -1,16 +1,10 @@
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 import { requireUser } from "@/lib/auth-guard";
-import {
-  getFastHistory,
-  computeFastStats,
-  buildHeatmapDays,
-} from "@/lib/fasting/history";
+import { getFastHistory } from "@/lib/fasting/history";
 import { getRecentWeightLogs } from "@/lib/weight/queries";
-import { AggregateStats } from "@/components/aggregate-stats";
-import { FastHeatmap } from "@/components/fast-heatmap";
+import { FastHistoryClient } from "@/components/fast-history-client";
 import { WeightTrendChart } from "@/components/weight-trend-chart";
-import { FastHistoryList } from "@/components/fast-history-list";
 
 export const dynamic = "force-dynamic";
 
@@ -21,9 +15,6 @@ export default async function FastHistoryPage() {
     getFastHistory(90),
     getRecentWeightLogs(30),
   ]);
-
-  const stats = computeFastStats(history);
-  const heatmap = buildHeatmapDays(history, 84);
 
   return (
     <>
@@ -42,18 +33,8 @@ export default async function FastHistoryPage() {
       </header>
 
       <div className="space-y-4">
-        <AggregateStats stats={stats} />
-
-        <section className="rounded-xl border border-border bg-card p-3">
-          <FastHeatmap days={heatmap} />
-        </section>
-
+        <FastHistoryClient initialFasts={history} />
         <WeightTrendChart logs={weightLogs} />
-
-        <section className="space-y-2">
-          <p className="px-1 text-sm font-semibold">Recent fasts</p>
-          <FastHistoryList fasts={history.slice(0, 30)} />
-        </section>
       </div>
     </>
   );

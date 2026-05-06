@@ -98,6 +98,8 @@ export function ActiveFastCard({
     startTransition(async () => {
       const reason = targetReached ? "completed" : "broken_early";
       await stopFast(fastId, reason);
+      // Navigate to the summary view for the just-ended fast.
+      router.replace(`/fast?ended=${fastId}`);
       router.refresh();
     });
   }

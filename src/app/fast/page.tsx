@@ -4,9 +4,10 @@ import { requireUser } from "@/lib/auth-guard";
 import { PageHeader } from "@/components/page-header";
 import { ActiveFastCard } from "@/components/active-fast-card";
 import { StartFastCard } from "@/components/start-fast-card";
+import { FastSummaryCard } from "@/components/fast-summary-card";
 import { WaterQuickLog } from "@/components/water-quick-log";
 import { WeightCard } from "@/components/weight-card";
-import { getActiveFast } from "@/lib/fasting/queries";
+import { getActiveFast, getFastById } from "@/lib/fasting/queries";
 import { getTodayProtocol } from "@/lib/fasting/templates";
 import { PROTOCOLS } from "@/lib/fasting/protocols";
 import { getRecentWaterLogs } from "@/lib/water/queries";
@@ -14,28 +15,55 @@ import { getLatestWeight, getWeightAround } from "@/lib/weight/queries";
 
 export const dynamic = "force-dynamic";
 
-export default async function FastPage() {
-  await requireUser();
+interface FastPageProps {
+  searchParams: Promise<{ ended?: string }>;
+}
 
-  const [active, waterLogs, latestWeight, weekAgoWeight] = await Promise.all([
-    getActiveFast(),
-    getRecentWaterLogs(7),
-    getLatestWeight(),
-    getWeightAround(7),
-  ]);
+export default async function FastPage({ searchParams }: FastPageProps) {
+  await requireUser();
+  const { ended: endedFastId } = await searchParams;
+
+  const [active, waterLogs, latestWeight, weekAgoWeight, justEnded] =
+    await Promise.all([
+      getActiveFast(),
+      getRecentWaterLogs(7),
+      getLatestWeight(),
+      getWeightAround(7),
+      endedFastId ? getFastById(endedFastId) : Promise.resolve(null),
+    ]);
 
   const todayProtocol = getTodayProtocol();
   const todayName = PROTOCOLS[todayProtocol].name;
+
+  // Show the summary if the URL has ?ended= and the fast is actually ended
+  const showSummary =
+    justEnded &&
+    justEnded.status !== "active" &&
+    justEnded.ended_at != null;
 
   return (
     <>
       <PageHeader
         title="Fast"
-        subtitle={active ? "In progress" : `Today's plan: ${todayName}`}
+        subtitle={
+          showSummary
+            ? "Just finished"
+            : active
+              ? "In progress"
+              : `Today's plan: ${todayName}`
+        }
       />
 
       <div className="space-y-3">
-        {active ? (
+        {showSummary && justEnded?.ended_at ? (
+          <FastSummaryCard
+            fastId={justEnded.id}
+            protocolSlug={justEnded.protocol_slug}
+            startedAt={justEnded.started_at}
+            endedAt={justEnded.ended_at}
+            status={justEnded.status}
+          />
+        ) : active ? (
           <ActiveFastCard
             fastId={active.id}
             protocolSlug={active.protocol_slug}

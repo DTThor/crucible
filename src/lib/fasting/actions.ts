@@ -128,7 +128,8 @@ export async function updateFastStartTime(
 
 /**
  * Permanently delete a fast. Used for cleaning up test/erroneous entries.
- * RLS limits this to fasts owned by the authed user.
+ * RLS limits this to fasts owned by the authed user. We `.select()` to
+ * surface RLS / not-found cases instead of silently no-op'ing.
  */
 export async function deleteFast(fastId: string): Promise<ActionResult> {
   const supabase = await createClient();
@@ -137,11 +138,68 @@ export async function deleteFast(fastId: string): Promise<ActionResult> {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const { error } = await supabase.from("fasts").delete().eq("id", fastId);
+  const { data, error } = await supabase
+    .from("fasts")
+    .delete()
+    .eq("id", fastId)
+    .select("id");
 
   if (error) {
     console.error("deleteFast error:", error);
     return fail("Could not delete fast.");
+  }
+  if (!data || data.length === 0) {
+    return fail("Fast not found.");
+  }
+
+  revalidatePath("/", "layout");
+  return ok();
+}
+
+/**
+ * Update both start_at and ended_at on a completed fast.
+ * - end must be after start
+ * - end can't be in the future
+ * - if status is 'active', use updateFastStartTime / stopFast instead
+ */
+export async function updateFastTimes(
+  fastId: string,
+  startedAtIso: string,
+  endedAtIso: string,
+): Promise<ActionResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const start = new Date(startedAtIso);
+  const end = new Date(endedAtIso);
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+    return fail("Invalid date.");
+  }
+  if (end.getTime() <= start.getTime()) {
+    return fail("End time must be after start.");
+  }
+  if (end.getTime() > Date.now()) {
+    return fail("End time can't be in the future.");
+  }
+
+  const { data, error } = await supabase
+    .from("fasts")
+    .update({
+      started_at: start.toISOString(),
+      ended_at: end.toISOString(),
+    })
+    .eq("id", fastId)
+    .select("id");
+
+  if (error) {
+    console.error("updateFastTimes error:", error);
+    return fail("Could not update times.");
+  }
+  if (!data || data.length === 0) {
+    return fail("Fast not found.");
   }
 
   revalidatePath("/", "layout");
