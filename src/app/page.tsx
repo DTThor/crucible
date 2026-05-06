@@ -2,11 +2,15 @@ import Link from "next/link";
 import { requireUser } from "@/lib/auth-guard";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Timer, Dumbbell, Droplets, Scale } from "lucide-react";
+import { Timer, Dumbbell } from "lucide-react";
 import { TodayFastSnapshot } from "@/components/today-fast-snapshot";
+import { WaterQuickLog } from "@/components/water-quick-log";
+import { WeightCard } from "@/components/weight-card";
 import { getActiveFast } from "@/lib/fasting/queries";
 import { getTodayProtocol } from "@/lib/fasting/templates";
 import { PROTOCOLS } from "@/lib/fasting/protocols";
+import { getRecentWaterLogs } from "@/lib/water/queries";
+import { getLatestWeight, getWeightAround } from "@/lib/weight/queries";
 
 const WEEKDAY = [
   "Sunday",
@@ -35,8 +39,16 @@ const MONTH = [
 export const dynamic = "force-dynamic";
 
 export default async function TodayPage() {
-  const user = await requireUser();
-  const active = await getActiveFast();
+  await requireUser();
+
+  // Fetch in parallel — they're independent
+  const [active, waterLogs, latestWeight, weekAgoWeight] = await Promise.all([
+    getActiveFast(),
+    getRecentWaterLogs(7),
+    getLatestWeight(),
+    getWeightAround(7),
+  ]);
+
   const todayProtocol = getTodayProtocol();
   const todayName = PROTOCOLS[todayProtocol].name;
 
@@ -47,15 +59,15 @@ export default async function TodayPage() {
     <>
       <PageHeader title="Today" subtitle={subtitle} />
 
-      <div className="space-y-4">
+      <div className="space-y-3">
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
+          <CardHeader className="pb-2 pt-4">
+            <CardTitle className="flex items-center gap-2 text-sm font-medium">
               <Timer className="h-4 w-4 text-primary" />
               {active ? "Active fast" : "No fast in progress"}
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pb-4">
             {active ? (
               <TodayFastSnapshot
                 startedAt={active.started_at}
@@ -66,55 +78,31 @@ export default async function TodayPage() {
                 href="/fast"
                 className="block text-sm text-muted-foreground"
               >
-                Today's plan: <span className="font-medium text-foreground">{todayName}</span>.
-                Start it from the Fast tab.
+                Today's plan:{" "}
+                <span className="font-medium text-foreground">{todayName}</span>
+                . Start it from the Fast tab.
               </Link>
             )}
           </CardContent>
         </Card>
 
+        <WaterQuickLog recentLogs={waterLogs} />
+
+        <WeightCard latest={latestWeight} weekAgo={weekAgoWeight} />
+
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
+          <CardHeader className="pb-2 pt-4">
+            <CardTitle className="flex items-center gap-2 text-sm font-medium">
               <Dumbbell className="h-4 w-4 text-primary" />
               Today's training
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pb-4">
             <p className="text-sm text-muted-foreground">
               Training program will appear here in Phase 2.
             </p>
           </CardContent>
         </Card>
-
-        <div className="grid grid-cols-2 gap-4">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                <Droplets className="h-4 w-4" />
-                Water
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-2xl font-semibold tabular-nums">0 oz</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                <Scale className="h-4 w-4" />
-                Last weight
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-2xl font-semibold tabular-nums">— lb</p>
-            </CardContent>
-          </Card>
-        </div>
-
-        <p className="px-1 pt-2 text-xs text-muted-foreground">
-          Signed in as {user.email}
-        </p>
       </div>
     </>
   );

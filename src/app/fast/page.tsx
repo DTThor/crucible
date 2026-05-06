@@ -2,16 +2,26 @@ import { requireUser } from "@/lib/auth-guard";
 import { PageHeader } from "@/components/page-header";
 import { ActiveFastCard } from "@/components/active-fast-card";
 import { StartFastCard } from "@/components/start-fast-card";
+import { WaterQuickLog } from "@/components/water-quick-log";
+import { WeightCard } from "@/components/weight-card";
 import { getActiveFast } from "@/lib/fasting/queries";
 import { getTodayProtocol } from "@/lib/fasting/templates";
 import { PROTOCOLS } from "@/lib/fasting/protocols";
+import { getRecentWaterLogs } from "@/lib/water/queries";
+import { getLatestWeight, getWeightAround } from "@/lib/weight/queries";
 
 export const dynamic = "force-dynamic";
 
 export default async function FastPage() {
   await requireUser();
 
-  const active = await getActiveFast();
+  const [active, waterLogs, latestWeight, weekAgoWeight] = await Promise.all([
+    getActiveFast(),
+    getRecentWaterLogs(7),
+    getLatestWeight(),
+    getWeightAround(7),
+  ]);
+
   const todayProtocol = getTodayProtocol();
   const todayName = PROTOCOLS[todayProtocol].name;
 
@@ -22,7 +32,7 @@ export default async function FastPage() {
         subtitle={active ? "In progress" : `Today's plan: ${todayName}`}
       />
 
-      <div className="space-y-4">
+      <div className="space-y-3">
         {active ? (
           <ActiveFastCard
             fastId={active.id}
@@ -33,6 +43,10 @@ export default async function FastPage() {
         ) : (
           <StartFastCard todayProtocol={todayProtocol} />
         )}
+
+        <WaterQuickLog recentLogs={waterLogs} />
+
+        <WeightCard latest={latestWeight} weekAgo={weekAgoWeight} />
       </div>
     </>
   );

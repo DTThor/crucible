@@ -6,7 +6,7 @@ import { EndAllFastsButton } from "@/components/end-all-fasts-button";
 
 export const dynamic = "force-dynamic";
 
-const VERSION = "0.3.3";
+const VERSION = "0.4.0";
 
 export default async function MePage() {
   const user = await requireUser();
