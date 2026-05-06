@@ -112,6 +112,43 @@ export async function addSet(input: AddSetInput): Promise<ActionResult> {
   return { ok: true, setId: data.id };
 }
 
+export async function updateSet(
+  setId: string,
+  fields: { reps?: number; weightLb?: number; rpe?: number },
+): Promise<ActionResult> {
+  const { supabase } = await authedClient();
+
+  if (fields.reps != null && (fields.reps < 0 || fields.reps > 999)) {
+    return fail("Reps out of range.");
+  }
+  if (
+    fields.weightLb != null &&
+    (fields.weightLb < 0 || fields.weightLb > 2000)
+  ) {
+    return fail("Weight out of range.");
+  }
+  if (fields.rpe != null && (fields.rpe < 1 || fields.rpe > 10)) {
+    return fail("Difficulty must be 1–10.");
+  }
+
+  const patch: Record<string, number | null> = {};
+  if (fields.reps !== undefined) patch.reps = fields.reps;
+  if (fields.weightLb !== undefined) patch.weight_kg = lbToKg(fields.weightLb);
+  if (fields.rpe !== undefined) patch.rpe = fields.rpe;
+
+  const { error } = await supabase
+    .from("workout_sets")
+    .update(patch)
+    .eq("id", setId);
+
+  if (error) {
+    console.error("updateSet error:", error);
+    return fail(error.message);
+  }
+  revalidatePath("/", "layout");
+  return { ok: true };
+}
+
 export async function deleteSet(setId: string): Promise<ActionResult> {
   const { supabase } = await authedClient();
   const { error } = await supabase

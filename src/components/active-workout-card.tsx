@@ -7,8 +7,6 @@ import { Modal } from "@/components/modal";
 import { ExerciseSetLogger } from "@/components/exercise-set-logger";
 import { Dumbbell, AlertTriangle, Pencil } from "lucide-react";
 import {
-  addSet,
-  deleteSet,
   endWorkout,
   abandonWorkout,
   updateWorkoutStartTime,
@@ -29,7 +27,6 @@ export function ActiveWorkoutCard({
 }: ActiveWorkoutCardProps) {
   const router = useRouter();
   const [now, setNow] = useState(() => Date.now());
-  const [sets, setSets] = useState<WorkoutSet[]>(initialSets);
   const [localStartedAt, setLocalStartedAt] = useState(workout.started_at);
   const [pending, startTransition] = useTransition();
   const [endModalOpen, setEndModalOpen] = useState(false);
@@ -43,7 +40,6 @@ export function ActiveWorkoutCard({
     return () => clearInterval(id);
   }, []);
 
-  useEffect(() => setSets(initialSets), [initialSets]);
   useEffect(() => setLocalStartedAt(workout.started_at), [workout.started_at]);
 
   // bfcache fix
@@ -68,66 +64,11 @@ export function ActiveWorkoutCard({
     ? getTemplate(workout.template_slug)
     : null;
 
-  // Group sets by exercise slug
+  // Group sets by exercise slug — each ExerciseSetLogger gets its own slice.
   const setsByExercise: Record<string, WorkoutSet[]> = {};
-  for (const s of sets) {
+  for (const s of initialSets) {
     setsByExercise[s.exercise_slug] = setsByExercise[s.exercise_slug] ?? [];
     setsByExercise[s.exercise_slug].push(s);
-  }
-
-  function handleAddSet(
-    exerciseSlug: string,
-    weight: number,
-    reps: number,
-    rpe: number,
-  ) {
-    setActionError(null);
-    const setNumber = (setsByExercise[exerciseSlug]?.length ?? 0) + 1;
-    const tempId = `temp-${Date.now()}-${Math.random()}`;
-    const tempSet: WorkoutSet = {
-      id: tempId,
-      workout_id: workout.id,
-      exercise_slug: exerciseSlug,
-      set_number: setNumber,
-      reps,
-      weight_kg: weight * 0.45359237,
-      rpe,
-      was_warmup: false,
-      created_at: new Date().toISOString(),
-    };
-    setSets((prev) => [...prev, tempSet]);
-    startTransition(async () => {
-      const res = await addSet({
-        workoutId: workout.id,
-        exerciseSlug,
-        setNumber,
-        reps,
-        weightLb: weight,
-        rpe,
-      });
-      if (!res.ok) {
-        setSets((prev) => prev.filter((s) => s.id !== tempId));
-        setActionError(res.error);
-      } else {
-        router.refresh();
-      }
-    });
-  }
-
-  function handleDeleteSet(setId: string) {
-    if (setId.startsWith("temp-")) return;
-    setActionError(null);
-    const previous = sets;
-    setSets((prev) => prev.filter((s) => s.id !== setId));
-    startTransition(async () => {
-      const res = await deleteSet(setId);
-      if (!res.ok) {
-        setSets(previous);
-        setActionError(res.error);
-      } else {
-        router.refresh();
-      }
-    });
   }
 
   function handleEnd() {
@@ -210,24 +151,20 @@ export function ActiveWorkoutCard({
             </button>
           </div>
 
-          {/* Lift template — show set logger per exercise */}
+          {/* Lift template — one ExerciseSetLogger per exercise */}
           {template && (
             <div className="space-y-3">
               {template.blocks.map((block) => {
                 const ex = getExercise(block.exerciseSlug);
                 if (!ex) return null;
-                const exerciseSets =
-                  setsByExercise[block.exerciseSlug] ?? [];
                 return (
                   <ExerciseSetLogger
                     key={block.exerciseSlug}
+                    workoutId={workout.id}
                     exercise={ex}
                     prescribedSets={block.sets}
                     prescribedReps={block.reps ?? ex.defaultReps ?? 10}
-                    loggedSets={exerciseSets}
-                    pending={pending}
-                    onAddSet={handleAddSet}
-                    onDeleteSet={handleDeleteSet}
+                    initialSets={setsByExercise[block.exerciseSlug] ?? []}
                   />
                 );
               })}
