@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Modal } from "@/components/modal";
 import { ExerciseSetLogger } from "@/components/exercise-set-logger";
-import { Dumbbell, AlertTriangle } from "lucide-react";
+import { Dumbbell, AlertTriangle, Pencil } from "lucide-react";
 import {
   addSet,
   deleteSet,
@@ -17,7 +17,6 @@ import { getExercise } from "@/lib/training/exercises";
 import { getTemplate } from "@/lib/training/templates";
 import type { ActiveWorkout, WorkoutSet } from "@/lib/training/queries";
 import { EditWorkoutStartTimeModal } from "@/components/edit-workout-start-time-modal";
-import { Pencil } from "lucide-react";
 
 interface ActiveWorkoutCardProps {
   workout: ActiveWorkout;

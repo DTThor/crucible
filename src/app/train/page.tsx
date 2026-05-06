@@ -1,10 +1,13 @@
 import { requireUser } from "@/lib/auth-guard";
 import { ActiveWorkoutCard } from "@/components/active-workout-card";
 import { HeroWorkoutCard } from "@/components/hero-workout-card";
+import { TrainHomeHeader } from "@/components/train-home-header";
 import {
-  TrainHomeHeader,
+  buildDayStrip,
+  deriveName,
+  getGreeting,
   getTrainSubtitle,
-} from "@/components/train-home-header";
+} from "@/lib/training/copy";
 import {
   getActiveWorkout,
   getWorkoutSets,
@@ -21,21 +24,26 @@ export default async function TrainPage() {
   const today = getTodayTraining();
   const subtitle = getTrainSubtitle(today.label, today.type);
 
+  // Compute the header data server-side so the component can stay pure.
+  const now = new Date();
+  const name = deriveName(user.email ?? "");
+  const initials = name.charAt(0).toUpperCase();
+  const greeting = getGreeting(now);
+  const dayStrip = buildDayStrip(now);
+
   return (
     <div className="space-y-5 pt-4">
+      <TrainHomeHeader
+        greeting={greeting}
+        name={name}
+        initials={initials}
+        subtitle={active ? "Workout in progress" : subtitle}
+        dayStrip={dayStrip}
+      />
       {active ? (
-        <>
-          <TrainHomeHeader
-            identifier={user.email ?? ""}
-            subtitle="Workout in progress"
-          />
-          <ActiveWorkoutCard workout={active} initialSets={sets} />
-        </>
+        <ActiveWorkoutCard workout={active} initialSets={sets} />
       ) : (
-        <>
-          <TrainHomeHeader identifier={user.email ?? ""} subtitle={subtitle} />
-          <HeroWorkoutCard today={today} />
-        </>
+        <HeroWorkoutCard today={today} />
       )}
     </div>
   );

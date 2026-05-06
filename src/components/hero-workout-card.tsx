@@ -2,14 +2,8 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import {
-  Dumbbell,
-  Activity,
-  Sparkles,
-  Coffee,
-  Play,
-  type LucideIcon,
-} from "lucide-react";
+import { Dumbbell, Activity, Sparkles, Coffee, Play } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { WorkoutTypePicker } from "@/components/workout-type-picker";
 import { startWorkout } from "@/lib/training/actions";
 import {

@@ -2,10 +2,7 @@
 
 import { Modal } from "@/components/modal";
 import { Dumbbell, Activity, Sparkles } from "lucide-react";
-import {
-  WORKOUT_TEMPLATES,
-  type WorkoutType,
-} from "@/lib/training/templates";
+import type { WorkoutType } from "@/lib/training/templates";
 
 interface WorkoutTypePickerProps {
   open: boolean;
