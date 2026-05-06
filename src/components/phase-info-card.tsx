@@ -18,20 +18,20 @@ export function PhaseInfoCard({ phase }: PhaseInfoCardProps) {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="flex w-full items-center gap-3 rounded-2xl border p-3 text-left transition-colors hover:bg-accent"
+        className="flex w-full items-center gap-2.5 rounded-xl border px-3 py-2 text-left transition-colors hover:bg-accent"
         style={{ borderColor: `color-mix(in srgb, ${phase.color} 35%, transparent)` }}
       >
         <div
-          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full"
           style={{ backgroundColor: `color-mix(in srgb, ${phase.color} 18%, transparent)` }}
         >
-          <Icon size={22} style={{ color: phase.color }} strokeWidth={2.25} />
+          <Icon size={18} style={{ color: phase.color }} strokeWidth={2.25} />
         </div>
         <div className="min-w-0 flex-1">
-          <p className="font-semibold" style={{ color: phase.color }}>
+          <p className="text-sm font-semibold leading-tight" style={{ color: phase.color }}>
             {phase.name}
           </p>
-          <p className="truncate text-sm text-muted-foreground">
+          <p className="truncate text-xs text-muted-foreground">
             {phase.blurb}
           </p>
         </div>

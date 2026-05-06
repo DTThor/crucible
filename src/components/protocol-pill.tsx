@@ -33,17 +33,18 @@ export function ProtocolPill({
         type="button"
         disabled={disabled}
         onClick={() => setOpen(true)}
-        className="flex flex-col items-center gap-0.5 rounded-full border border-primary/40 bg-primary/5 px-6 py-2 text-primary transition-colors hover:bg-primary/10 disabled:opacity-50"
+        className="flex items-center gap-2 rounded-full border border-primary/40 bg-primary/5 px-4 py-1.5 text-primary transition-colors hover:bg-primary/10 disabled:opacity-50"
       >
-        <span className="text-base font-semibold tracking-wide">
+        <span className="text-sm font-semibold tracking-wide">
           {protocol.name.toUpperCase()}
         </span>
         <span className="text-[10px] uppercase tracking-wider text-primary/70">
+          ·{" "}
           {protocol.eatingWindowHours === 0
             ? "no eating window"
             : protocol.eatingWindowHours === 1
               ? "one meal a day"
-              : `${protocol.eatingWindowHours}h eating window`}
+              : `${protocol.eatingWindowHours}h window`}
         </span>
       </button>
 

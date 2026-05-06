@@ -140,7 +140,7 @@ export function ActiveFastCard({
 
   // ── Active fast UI ────────────────────────────────────────────
   return (
-    <div className="flex flex-col items-center gap-5">
+    <div className="flex flex-col items-center gap-3">
       <ProtocolPill
         selectedSlug={localProtocolSlug as ProtocolSlug}
         onChange={handleProtocolChange}
@@ -153,8 +153,8 @@ export function ActiveFastCard({
       />
 
       {targetReached && (
-        <div className="flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
-          <CheckCircle2 className="h-4 w-4" />
+        <div className="flex items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary">
+          <CheckCircle2 className="h-3.5 w-3.5" />
           <span>Goal reached</span>
         </div>
       )}
@@ -171,7 +171,7 @@ export function ActiveFastCard({
         type="button"
         onClick={() => setEndModalOpen(true)}
         disabled={pending}
-        className="w-full rounded-full border border-destructive/50 py-4 text-base font-medium text-destructive hover:bg-destructive/10"
+        className="w-full rounded-full border border-destructive/50 py-2.5 text-sm font-medium text-destructive hover:bg-destructive/10"
       >
         End Fast
       </button>

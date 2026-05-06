@@ -44,24 +44,24 @@ export function FastTimesRow({
   const end = plannedEndMs ? formatDateTime(plannedEndMs) : null;
 
   return (
-    <div className="grid grid-cols-2 divide-x divide-border rounded-2xl border border-border">
+    <div className="grid grid-cols-2 divide-x divide-border rounded-xl border border-border">
       <button
         type="button"
         onClick={onEditStart}
-        className="flex flex-col items-start gap-1 px-4 py-3 text-left transition-colors hover:bg-accent"
+        className="flex flex-col items-start gap-0.5 px-3 py-2 text-left transition-colors hover:bg-accent"
       >
-        <span className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-muted-foreground">
-          Start <Pencil className="h-3 w-3" />
+        <span className="flex items-center gap-1 text-[10px] uppercase tracking-wider text-muted-foreground">
+          Start <Pencil className="h-2.5 w-2.5" />
         </span>
-        <span className="text-sm font-medium tabular-nums">
+        <span className="text-xs font-medium tabular-nums">
           {start.date} · {start.time}
         </span>
       </button>
-      <div className="flex flex-col items-end gap-1 px-4 py-3 text-right">
+      <div className="flex flex-col items-end gap-0.5 px-3 py-2 text-right">
         <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
           End
         </span>
-        <span className="text-sm font-medium tabular-nums">
+        <span className="text-xs font-medium tabular-nums">
           {end ? `${end.date} · ${end.time}` : "—"}
         </span>
       </div>
