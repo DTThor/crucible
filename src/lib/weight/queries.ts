@@ -7,6 +7,24 @@ export interface WeightLog {
   source: string;
 }
 
+/** All weight logs in the last `days` days, oldest first (chart-friendly). */
+export async function getRecentWeightLogs(days = 30): Promise<WeightLog[]> {
+  const supabase = await createClient();
+  const since = new Date(Date.now() - days * 24 * 3_600_000).toISOString();
+
+  const { data, error } = await supabase
+    .from("weight_logs")
+    .select("id, weight_kg, logged_at, source")
+    .gte("logged_at", since)
+    .order("logged_at", { ascending: true });
+
+  if (error) {
+    console.error("getRecentWeightLogs error:", error);
+    return [];
+  }
+  return data ?? [];
+}
+
 /** Most-recent weight log, or null if none. */
 export async function getLatestWeight(): Promise<WeightLog | null> {
   const supabase = await createClient();

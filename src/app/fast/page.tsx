@@ -1,3 +1,5 @@
+import Link from "next/link";
+import { ChevronRight, BarChart3 } from "lucide-react";
 import { requireUser } from "@/lib/auth-guard";
 import { PageHeader } from "@/components/page-header";
 import { ActiveFastCard } from "@/components/active-fast-card";
@@ -47,6 +49,17 @@ export default async function FastPage() {
         <WaterQuickLog recentLogs={waterLogs} />
 
         <WeightCard latest={latestWeight} weekAgo={weekAgoWeight} />
+
+        <Link
+          href="/fast/history"
+          className="flex items-center justify-between rounded-xl border border-border bg-card px-4 py-3 hover:bg-accent"
+        >
+          <span className="flex items-center gap-2 text-sm font-medium">
+            <BarChart3 className="h-4 w-4 text-primary" />
+            View history & stats
+          </span>
+          <ChevronRight className="h-4 w-4 text-muted-foreground" />
+        </Link>
       </div>
     </>
   );
