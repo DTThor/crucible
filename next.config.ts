@@ -4,6 +4,14 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
   // typedRoutes will go back in once Turbopack supports it.
   // Tracking issue: https://github.com/vercel/next.js/issues/62753
+  experimental: {
+    // Aggressively invalidate the client router cache so revalidatePath
+    // fully propagates to prefetched routes too.
+    staleTimes: {
+      dynamic: 0,
+      static: 0,
+    },
+  },
   async headers() {
     return [
       {

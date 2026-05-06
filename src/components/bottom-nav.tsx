@@ -27,6 +27,7 @@ export function BottomNav() {
             <Link
               key={href}
               href={href}
+              prefetch={false}
               className={cn(
                 "flex flex-col items-center justify-center gap-1 py-3 text-xs font-medium transition-colors",
                 active

@@ -2,11 +2,21 @@ import { requireUser } from "@/lib/auth-guard";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { ThemeToggle } from "./theme-toggle";
+import { EndAllFastsButton } from "@/components/end-all-fasts-button";
 
 export const dynamic = "force-dynamic";
 
+const VERSION = "0.2.0";
+
 export default async function MePage() {
   const user = await requireUser();
+
+  // Set by Vercel automatically; useful for verifying which deploy you're on.
+  const sha = process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) ?? "local";
+  const deployedAt = process.env.VERCEL_GIT_COMMIT_REF
+    ? `${process.env.VERCEL_GIT_COMMIT_REF}@${sha}`
+    : sha;
+
   return (
     <>
       <PageHeader title="Me" />
@@ -24,9 +34,24 @@ export default async function MePage() {
           <CardContent className="flex items-center justify-between py-5">
             <div>
               <p className="font-medium">Theme</p>
-              <p className="text-sm text-muted-foreground">Light, dark, or system</p>
+              <p className="text-sm text-muted-foreground">
+                Light, dark, or system
+              </p>
             </div>
             <ThemeToggle />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="space-y-3 py-5">
+            <div>
+              <p className="font-medium">Cleanup</p>
+              <p className="text-sm text-muted-foreground">
+                Force-end every fast currently marked active. Use if the timer
+                is showing a stale fast from earlier testing.
+              </p>
+            </div>
+            <EndAllFastsButton />
           </CardContent>
         </Card>
 
@@ -40,7 +65,7 @@ export default async function MePage() {
         </form>
 
         <p className="px-1 pt-2 text-center text-xs text-muted-foreground">
-          Crucible · v0.1.0
+          Crucible · v{VERSION} · {deployedAt}
         </p>
       </div>
     </>

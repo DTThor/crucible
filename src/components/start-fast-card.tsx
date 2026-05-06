@@ -32,6 +32,9 @@ export function StartFastCard({ todayProtocol }: StartFastCardProps) {
       const res = await startFast(selected);
       if (!res.ok) {
         setError(res.error);
+        // If the server says a fast is already in progress, the UI is stale —
+        // refresh so the page shows the active fast card instead of this one.
+        router.refresh();
       } else {
         router.refresh();
       }

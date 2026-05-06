@@ -126,6 +126,31 @@ export async function updateFastStartTime(
   return ok();
 }
 
+/**
+ * Force-end every fast currently in 'active' status for the user.
+ * Defensive cleanup for orphan fasts left from earlier testing or crashes.
+ */
+export async function endAllActiveFasts(): Promise<ActionResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const { error } = await supabase
+    .from("fasts")
+    .update({ ended_at: new Date().toISOString(), status: "broken_early" })
+    .eq("status", "active");
+
+  if (error) {
+    console.error("endAllActiveFasts error:", error);
+    return fail("Could not end active fasts.");
+  }
+
+  revalidatePath("/", "layout");
+  return ok();
+}
+
 export async function changeActiveFastProtocol(
   fastId: string,
   protocolSlug: ProtocolSlug,
