@@ -64,6 +64,15 @@ export function ActiveFastCard({
     return () => clearInterval(id);
   }, []);
 
+  // Refresh from server when iOS Safari restores from bfcache
+  useEffect(() => {
+    function onPageShow(e: PageTransitionEvent) {
+      if (e.persisted) router.refresh();
+    }
+    window.addEventListener("pageshow", onPageShow);
+    return () => window.removeEventListener("pageshow", onPageShow);
+  }, [router]);
+
   // Resync to server when props change
   useEffect(() => setLocalStartedAt(startedAt), [startedAt]);
   useEffect(() => setLocalProtocolSlug(protocolSlug), [protocolSlug]);

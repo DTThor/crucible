@@ -35,13 +35,20 @@ export async function getFastById(id: string): Promise<FastById | null> {
   return data;
 }
 
-/** The user's currently active fast, or null if none. */
+/**
+ * The user's currently active fast, or null if none.
+ *
+ * Active is strictly defined: status='active' AND ended_at IS NULL.
+ * The ended_at filter guards against inconsistent rows where status
+ * never got cleared (e.g. an action raced or partially failed).
+ */
 export async function getActiveFast(): Promise<ActiveFast | null> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("fasts")
     .select("id, protocol_slug, started_at, planned_end_at, notes")
     .eq("status", "active")
+    .is("ended_at", null)
     .order("started_at", { ascending: false })
     .limit(1)
     .maybeSingle();

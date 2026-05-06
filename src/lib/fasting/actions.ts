@@ -25,10 +25,13 @@ export async function startFast(
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
+  // Strict "active" definition — also guards against rows where status
+  // is stuck at 'active' but ended_at is already set.
   const { data: existing } = await supabase
     .from("fasts")
     .select("id")
     .eq("status", "active")
+    .is("ended_at", null)
     .limit(1)
     .maybeSingle();
   if (existing) return fail("A fast is already in progress.");
@@ -64,15 +67,21 @@ export async function stopFast(
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const { error } = await supabase
+  // Update + verify a row was hit. Filter by status='active' so we don't
+  // re-end an already-ended fast (and to surface that case as an error).
+  const { data, error } = await supabase
     .from("fasts")
     .update({ ended_at: new Date().toISOString(), status: reason })
     .eq("id", fastId)
-    .eq("status", "active");
+    .eq("status", "active")
+    .select("id");
 
   if (error) {
     console.error("stopFast error:", error);
     return fail("Could not stop fast.");
+  }
+  if (!data || data.length === 0) {
+    return fail("Fast was not active.");
   }
 
   revalidatePath("/", "layout");
@@ -95,7 +104,6 @@ export async function updateFastStartTime(
     return fail("Start time can't be in the future.");
   }
 
-  // Recompute planned_end_at from new start + current protocol's target.
   const { data: existing } = await supabase
     .from("fasts")
     .select("protocol_slug")
@@ -108,18 +116,22 @@ export async function updateFastStartTime(
     newStart.getTime() + protocol.targetHours * 3_600_000,
   );
 
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("fasts")
     .update({
       started_at: newStart.toISOString(),
       planned_end_at: newPlannedEnd.toISOString(),
     })
     .eq("id", fastId)
-    .eq("status", "active");
+    .eq("status", "active")
+    .select("id");
 
   if (error) {
     console.error("updateFastStartTime error:", error);
     return fail("Could not update start time.");
+  }
+  if (!data || data.length === 0) {
+    return fail("Fast not found or no longer active.");
   }
 
   revalidatePath("/", "layout");
@@ -128,8 +140,6 @@ export async function updateFastStartTime(
 
 /**
  * Permanently delete a fast. Used for cleaning up test/erroneous entries.
- * RLS limits this to fasts owned by the authed user. We `.select()` to
- * surface RLS / not-found cases instead of silently no-op'ing.
  */
 export async function deleteFast(fastId: string): Promise<ActionResult> {
   const supabase = await createClient();
@@ -157,10 +167,8 @@ export async function deleteFast(fastId: string): Promise<ActionResult> {
 }
 
 /**
- * Update both start_at and ended_at on a completed fast.
- * - end must be after start
- * - end can't be in the future
- * - if status is 'active', use updateFastStartTime / stopFast instead
+ * Update both started_at and ended_at on an already-ended fast.
+ * Refuses to operate on active fasts (use updateFastStartTime + stopFast for those).
  */
 export async function updateFastTimes(
   fastId: string,
@@ -185,6 +193,8 @@ export async function updateFastTimes(
     return fail("End time can't be in the future.");
   }
 
+  // Only allow on already-ended fasts. Filter explicitly by status
+  // to keep this from accidentally mutating an active fast.
   const { data, error } = await supabase
     .from("fasts")
     .update({
@@ -192,6 +202,7 @@ export async function updateFastTimes(
       ended_at: end.toISOString(),
     })
     .eq("id", fastId)
+    .neq("status", "active")
     .select("id");
 
   if (error) {
@@ -199,7 +210,7 @@ export async function updateFastTimes(
     return fail("Could not update times.");
   }
   if (!data || data.length === 0) {
-    return fail("Fast not found.");
+    return fail("Fast not found or still active.");
   }
 
   revalidatePath("/", "layout");
@@ -253,18 +264,22 @@ export async function changeActiveFastProtocol(
     new Date(existing.started_at).getTime() + protocol.targetHours * 3_600_000,
   );
 
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("fasts")
     .update({
       protocol_slug: protocolSlug,
       planned_end_at: newPlannedEnd.toISOString(),
     })
     .eq("id", fastId)
-    .eq("status", "active");
+    .eq("status", "active")
+    .select("id");
 
   if (error) {
     console.error("changeActiveFastProtocol error:", error);
     return fail("Could not change protocol.");
+  }
+  if (!data || data.length === 0) {
+    return fail("Fast no longer active.");
   }
 
   revalidatePath("/", "layout");
