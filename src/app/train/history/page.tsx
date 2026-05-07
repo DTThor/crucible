@@ -10,6 +10,7 @@ import {
 import { WorkoutStatsCards } from "@/components/workout-stats-cards";
 import { ExerciseProgressionChart } from "@/components/exercise-progression-chart";
 import { WorkoutHistoryList } from "@/components/workout-history-list";
+import { BfcacheRefresher } from "@/components/bfcache-refresher";
 
 export const dynamic = "force-dynamic";
 
@@ -31,6 +32,7 @@ export default async function TrainHistoryPage() {
 
   return (
     <>
+      <BfcacheRefresher />
       <header
         className="sticky top-0 z-30 -mx-4 mb-3 flex items-center gap-2 border-b border-border bg-background/80 px-4 py-3 backdrop-blur"
         style={{ paddingTop: "max(env(safe-area-inset-top), 0.75rem)" }}

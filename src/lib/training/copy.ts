@@ -15,15 +15,6 @@ export function deriveName(identifier: string): string {
   return first.charAt(0).toUpperCase() + first.slice(1).toLowerCase();
 }
 
-export function getGreeting(now: Date): string {
-  const h = now.getHours();
-  if (h < 5) return "Up late";
-  if (h < 12) return "Good morning";
-  if (h < 17) return "Good afternoon";
-  if (h < 22) return "Good evening";
-  return "Late night";
-}
-
 export interface DayStripEntry {
   dayName: string;
   date: number;

@@ -203,18 +203,20 @@ export function ActiveFastCard({
         onEditStart={() => setEditModalOpen(true)}
       />
 
-      <button
-        type="button"
-        onClick={() => setEndModalOpen(true)}
-        disabled={pending}
-        className={
-          targetReached
-            ? "w-full rounded-full bg-primary py-2.5 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/30 hover:bg-primary/90"
-            : "w-full rounded-full border border-destructive/50 py-2.5 text-sm font-medium text-destructive hover:bg-destructive/10"
-        }
-      >
-        {targetReached ? "Complete fast" : "End Fast"}
-      </button>
+      <div className="flex justify-center">
+        <button
+          type="button"
+          onClick={() => setEndModalOpen(true)}
+          disabled={pending}
+          className={
+            targetReached
+              ? "rounded-full bg-primary px-6 py-2 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/30 hover:bg-primary/90"
+              : "rounded-full border border-destructive/50 px-6 py-2 text-sm font-medium text-destructive hover:bg-destructive/10"
+          }
+        >
+          {targetReached ? "Complete fast" : "End fast"}
+        </button>
+      </div>
 
       {stopError && (
         <p className="rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2 text-center text-xs text-destructive">

@@ -106,10 +106,20 @@ export function ExerciseSetLogger({
 
   function handleAddRow() {
     setError(null);
-    setRows((prev) => [
-      ...prev,
-      { weight: "", reps: "", completed: false, dbId: null },
-    ]);
+    setRows((prev) => {
+      // Pre-fill the new row with the last completed row's values so
+      // identical sets don't have to be retyped four times.
+      const lastCompleted = [...prev].reverse().find((r) => r.completed);
+      return [
+        ...prev,
+        {
+          weight: lastCompleted?.weight ?? "",
+          reps: lastCompleted?.reps ?? "",
+          completed: false,
+          dbId: null,
+        },
+      ];
+    });
   }
 
   function handleRemoveRow() {
@@ -149,7 +159,18 @@ export function ExerciseSetLogger({
       return;
     }
 
-    patchRow(idx, { completed: true });
+    // Mark this row complete AND pre-fill any later rows that are
+    // still empty with the same weight/reps. Most lifters do identical
+    // sets back-to-back, so this saves a lot of typing.
+    setRows((prev) =>
+      prev.map((r2, j) => {
+        if (j === idx) return { ...r2, completed: true };
+        if (j > idx && !r2.completed && !r2.weight && !r2.reps) {
+          return { ...r2, weight: row.weight, reps: row.reps };
+        }
+        return r2;
+      }),
+    );
     startTransition(async () => {
       const res = await addSet({
         workoutId,

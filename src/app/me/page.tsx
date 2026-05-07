@@ -20,11 +20,11 @@ import {
   resolveInitials,
   resolveName,
 } from "@/lib/profile/queries";
-import { formatTodayDate, getGreeting } from "@/lib/copy";
+import { formatTodayDate } from "@/lib/copy";
 
 export const dynamic = "force-dynamic";
 
-const VERSION = "0.13.0";
+const VERSION = "0.13.1";
 
 export default async function MePage() {
   const user = await requireUser();
@@ -37,7 +37,6 @@ export default async function MePage() {
   const fallbackName = resolveName(profile, user.email ?? "");
   const initials = resolveInitials(fallbackName);
   const now = new Date();
-  const greeting = `${getGreeting(now)}, ${fallbackName}`;
   const subtitle = formatTodayDate(now);
 
   const sha = process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) ?? "local";
@@ -50,7 +49,7 @@ export default async function MePage() {
       <TabHeader
         avatarUrl={profile?.avatar_url ?? null}
         initials={initials}
-        greeting={greeting}
+        name={fallbackName}
         subtitle={subtitle}
       />
 

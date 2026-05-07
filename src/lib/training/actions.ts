@@ -272,6 +272,27 @@ export async function endAllActiveWorkouts(): Promise<{
   return { ok: true, count: data?.length ?? 0 };
 }
 
+/**
+ * Delete a single workout (and cascade its sets via the FK on
+ * workout_sets.workout_id). RLS confines the delete to the user's own
+ * rows, so no extra ownership check is needed.
+ */
+export async function deleteWorkout(
+  workoutId: string,
+): Promise<ActionResult> {
+  const { supabase } = await authedClient();
+  const { error } = await supabase
+    .from("workouts")
+    .delete()
+    .eq("id", workoutId);
+  if (error) {
+    console.error("deleteWorkout error:", error);
+    return fail(error.message);
+  }
+  revalidatePath("/", "layout");
+  return { ok: true };
+}
+
 export async function deleteAllWorkouts(): Promise<{
   ok: boolean;
   count: number;

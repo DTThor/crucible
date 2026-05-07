@@ -17,7 +17,7 @@ import {
   resolveInitials,
   resolveName,
 } from "@/lib/profile/queries";
-import { formatTodayDate, getGreeting } from "@/lib/copy";
+import { formatTodayDate } from "@/lib/copy";
 
 export const dynamic = "force-dynamic";
 
@@ -51,7 +51,6 @@ export default async function FastPage({ searchParams }: FastPageProps) {
   const now = new Date();
   const name = resolveName(profile, user.email ?? "");
   const initials = resolveInitials(name);
-  const greeting = `${getGreeting(now)}, ${name}`;
   const dateStr = formatTodayDate(now);
 
   const showSummary =
@@ -70,7 +69,7 @@ export default async function FastPage({ searchParams }: FastPageProps) {
       <TabHeader
         avatarUrl={profile?.avatar_url ?? null}
         initials={initials}
-        greeting={greeting}
+        name={name}
         subtitle={subtitle}
       />
 

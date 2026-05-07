@@ -23,6 +23,12 @@ interface ExerciseProgressionChartProps {
  * Per-exercise progression view. Picker on top to switch exercises;
  * inline SVG line chart for the selected one. Hand-rolled SVG to match
  * the WeightTrendChart and avoid pulling in a chart lib.
+ *
+ * Selection model:
+ *   - Default: most recent session is selected (highlighted dot).
+ *   - Tap a dot → selects that session, summary row shows its values.
+ *   - Tapping the same dot again clears selection back to "summary
+ *     across all sessions".
  */
 export function ExerciseProgressionChart({
   exercises,
@@ -33,11 +39,16 @@ export function ExerciseProgressionChart({
   const [points, setPoints] = useState<ExercisePoint[]>(initialPoints);
   const [pending, startTransition] = useTransition();
   const [pickerOpen, setPickerOpen] = useState(false);
-  const [hoverIdx, setHoverIdx] = useState<number | null>(null);
+  // Default: latest session selected so the user can see specifics
+  // without having to tap.
+  const [selectedIdx, setSelectedIdx] = useState<number>(
+    Math.max(0, initialPoints.length - 1),
+  );
 
+  // Reset selection when exercise switches, after points load.
   useEffect(() => {
-    setHoverIdx(null);
-  }, [slug]);
+    setSelectedIdx(Math.max(0, points.length - 1));
+  }, [points]);
 
   function handlePick(next: string) {
     setPickerOpen(false);
@@ -80,12 +91,17 @@ export function ExerciseProgressionChart({
 
         <ProgressionChart
           points={points}
-          hoverIdx={hoverIdx}
-          onHover={setHoverIdx}
+          selectedIdx={selectedIdx}
+          onSelect={(idx) =>
+            setSelectedIdx((prev) => (prev === idx ? -1 : idx))
+          }
           loading={pending}
         />
 
-        <ExerciseSummaryRow points={points} hoverIdx={hoverIdx} />
+        <ExerciseSummaryRow
+          points={points}
+          selectedIdx={selectedIdx}
+        />
       </div>
 
       <Modal
@@ -119,34 +135,33 @@ export function ExerciseProgressionChart({
 
 function ProgressionChart({
   points,
-  hoverIdx,
-  onHover,
+  selectedIdx,
+  onSelect,
   loading,
 }: {
   points: ExercisePoint[];
-  hoverIdx: number | null;
-  onHover: (idx: number | null) => void;
+  selectedIdx: number;
+  onSelect: (idx: number) => void;
   loading: boolean;
 }) {
   if (loading) {
     return (
-      <div className="flex h-[140px] items-center justify-center text-xs text-muted-foreground">
+      <div className="flex h-[160px] items-center justify-center text-xs text-muted-foreground">
         Loading…
       </div>
     );
   }
   if (points.length === 0) {
     return (
-      <div className="flex h-[140px] items-center justify-center text-xs text-muted-foreground">
+      <div className="flex h-[160px] items-center justify-center text-xs text-muted-foreground">
         No history yet for this exercise.
       </div>
     );
   }
 
-  // Single-point case — center it.
   const width = 320;
-  const height = 140;
-  const padding = { top: 14, right: 16, bottom: 22, left: 32 };
+  const height = 160;
+  const padding = { top: 18, right: 16, bottom: 22, left: 32 };
   const innerW = width - padding.left - padding.right;
   const innerH = height - padding.top - padding.bottom;
 
@@ -158,7 +173,7 @@ function ProgressionChart({
   const weights = points.map((p) => p.topWeightLb);
   const minW = Math.min(...weights);
   const maxW = Math.max(...weights);
-  const wRange = Math.max(maxW - minW, 5); // never compress flat data
+  const wRange = Math.max(maxW - minW, 5);
   const minWPad = minW - wRange * 0.15;
   const maxWPad = maxW + wRange * 0.15;
   const wRangePad = maxWPad - minWPad;
@@ -179,6 +194,15 @@ function ProgressionChart({
       return `${i === 0 ? "M" : "L"} ${px} ${py}`;
     })
     .join(" ");
+
+  const selectedPoint =
+    selectedIdx >= 0 && selectedIdx < points.length
+      ? points[selectedIdx]
+      : null;
+  const selectedX = selectedPoint
+    ? x(new Date(selectedPoint.startedIso).getTime())
+    : null;
+  const selectedY = selectedPoint ? y(selectedPoint.topWeightLb) : null;
 
   return (
     <svg
@@ -214,6 +238,19 @@ function ProgressionChart({
         );
       })}
 
+      {/* Vertical reference line through the selected point */}
+      {selectedX != null && (
+        <line
+          x1={selectedX}
+          x2={selectedX}
+          y1={padding.top - 6}
+          y2={padding.top + innerH}
+          stroke="hsl(142 76% 56%)"
+          strokeOpacity={0.35}
+          strokeDasharray="3 3"
+        />
+      )}
+
       {/* Line */}
       <path
         d={path}
@@ -224,33 +261,57 @@ function ProgressionChart({
         strokeLinejoin="round"
       />
 
+      {/* Selected dot — glow halo behind for emphasis */}
+      {selectedX != null && selectedY != null && (
+        <circle
+          cx={selectedX}
+          cy={selectedY}
+          r={10}
+          fill="hsl(142 76% 56%)"
+          fillOpacity={0.18}
+        />
+      )}
+
       {/* Dots — PRs (== max weight) get the bright fill */}
       {points.map((p, i) => {
         const t = new Date(p.startedIso).getTime();
         const isPr = p.topWeightLb === maxWeight;
-        const isHover = hoverIdx === i;
+        const isSelected = i === selectedIdx;
+        const cx = x(t);
+        const cy = y(p.topWeightLb);
         return (
           <g key={p.workoutId}>
             <circle
-              cx={x(t)}
-              cy={y(p.topWeightLb)}
-              r={isHover ? 5 : isPr ? 4 : 3}
-              fill={isPr ? "hsl(142 76% 56%)" : "hsl(var(--background))"}
+              cx={cx}
+              cy={cy}
+              r={isSelected ? 5.5 : isPr ? 4 : 3}
+              fill={
+                isSelected
+                  ? "hsl(142 76% 56%)"
+                  : isPr
+                    ? "hsl(142 76% 56%)"
+                    : "hsl(var(--background))"
+              }
               stroke="hsl(142 76% 56%)"
-              strokeWidth={1.75}
-              onMouseEnter={() => onHover(i)}
-              onMouseLeave={() => onHover(null)}
-              onClick={() => onHover(i)}
+              strokeWidth={isSelected ? 2.5 : 1.75}
+              onClick={() => onSelect(i)}
               style={{ cursor: "pointer" }}
             />
             {/* Reps label, but only when there's room — every other dot */}
-            {(points.length <= 8 || i % 2 === 0 || isHover) && (
+            {(points.length <= 8 ||
+              i % 2 === 0 ||
+              isSelected) && (
               <text
-                x={x(t)}
-                y={y(p.topWeightLb) - 7}
+                x={cx}
+                y={cy - 9}
                 textAnchor="middle"
-                fontSize={8}
-                fill="hsl(var(--muted-foreground))"
+                fontSize={isSelected ? 10 : 8}
+                fontWeight={isSelected ? 600 : 400}
+                fill={
+                  isSelected
+                    ? "hsl(142 76% 56%)"
+                    : "hsl(var(--muted-foreground))"
+                }
               >
                 ×{p.topReps}
               </text>
@@ -285,44 +346,60 @@ function ProgressionChart({
 
 function ExerciseSummaryRow({
   points,
-  hoverIdx,
+  selectedIdx,
 }: {
   points: ExercisePoint[];
-  hoverIdx: number | null;
+  selectedIdx: number;
 }) {
+  const selected = useMemo(
+    () =>
+      selectedIdx >= 0 && selectedIdx < points.length
+        ? points[selectedIdx]
+        : null,
+    [points, selectedIdx],
+  );
+
   if (points.length === 0) return null;
 
-  const maxWeight = Math.max(...points.map((p) => p.topWeightLb));
-  const totalVolume = points.reduce((s, p) => s + p.totalVolumeLb, 0);
-  const lastRated = [...points].reverse().find((p) => p.rpe != null);
-  const sessions = points.length;
-
-  if (hoverIdx != null && points[hoverIdx]) {
-    const p = points[hoverIdx];
+  if (selected) {
     return (
-      <div className="mt-2 flex items-center justify-between rounded-lg bg-muted/40 px-2.5 py-1.5 text-[11px]">
-        <span className="font-medium">{formatLongDate(p.startedIso)}</span>
-        <span className="font-mono tabular-nums">
-          {p.topWeightLb % 1 === 0
-            ? p.topWeightLb.toFixed(0)
-            : p.topWeightLb.toFixed(1)}{" "}
-          lb × {p.topReps}
-          {p.rpe != null && (
-            <span className="ml-1.5 text-muted-foreground">· d{p.rpe}</span>
+      <div className="mt-3 rounded-lg border border-primary/40 bg-primary/10 px-3 py-2">
+        <div className="flex items-center justify-between">
+          <span className="text-[10px] uppercase tracking-wider text-primary/80">
+            Selected · {formatLongDate(selected.startedIso)}
+          </span>
+          {selected.rpe != null && (
+            <span className="rounded-full bg-primary/20 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
+              Difficulty {selected.rpe}
+            </span>
           )}
-        </span>
+        </div>
+        <div className="mt-1 flex items-baseline gap-3">
+          <span className="font-mono text-lg font-semibold tabular-nums">
+            {roundLb(selected.topWeightLb)} lb × {selected.topReps}
+          </span>
+          <span className="text-[11px] text-muted-foreground">
+            {selected.setCount} set{selected.setCount === 1 ? "" : "s"} ·{" "}
+            {formatVolume(selected.totalVolumeLb)} lb volume
+          </span>
+        </div>
       </div>
     );
   }
 
+  // No selection (user tapped twice to clear) — show overall summary.
+  const maxWeight = Math.max(...points.map((p) => p.topWeightLb));
+  const totalVolume = points.reduce((s, p) => s + p.totalVolumeLb, 0);
+  const lastRated = [...points].reverse().find((p) => p.rpe != null);
+
   return (
-    <div className="mt-2 grid grid-cols-3 gap-2 text-center">
+    <div className="mt-3 grid grid-cols-3 gap-2 text-center">
       <SummaryCell label="Top weight" value={`${roundLb(maxWeight)} lb`} />
       <SummaryCell label="Total volume" value={`${formatVolume(totalVolume)} lb`} />
       <SummaryCell
         label="Last rating"
         value={lastRated?.rpe != null ? lastRated.rpe.toString() : "—"}
-        sub={lastRated?.rpe != null ? "/ 10" : `${sessions} sessions`}
+        sub={lastRated?.rpe != null ? "/ 10" : `${points.length} sessions`}
       />
     </div>
   );

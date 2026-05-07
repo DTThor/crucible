@@ -1,11 +1,10 @@
-import Link from "next/link";
 import { BarChart3, ChevronRight } from "lucide-react";
 import { requireUser } from "@/lib/auth-guard";
 import { ActiveWorkoutCard } from "@/components/active-workout-card";
 import { HeroWorkoutCard } from "@/components/hero-workout-card";
 import { WorkoutSummaryCard } from "@/components/workout-summary-card";
 import { TabHeader } from "@/components/tab-header";
-import { formatTodayDate, getGreeting } from "@/lib/copy";
+import { formatTodayDate } from "@/lib/copy";
 import {
   getActiveWorkout,
   getLastSetForExercise,
@@ -75,7 +74,7 @@ export default async function TrainPage({ searchParams }: TrainPageProps) {
             block.reps ?? ex?.defaultReps ?? 10;
           return [
             block.exerciseSlug,
-            suggestNext(last, fallbackReps),
+            suggestNext(last, fallbackReps, ex?.equipment ?? "db"),
           ] as const;
         }),
       );
@@ -87,7 +86,6 @@ export default async function TrainPage({ searchParams }: TrainPageProps) {
   const now = new Date();
   const name = resolveName(profile, user.email ?? "");
   const initials = resolveInitials(name);
-  const greeting = `${getGreeting(now)}, ${name}`;
   const subtitle = showSummary
     ? `${formatTodayDate(now)} · Just finished`
     : active
@@ -99,7 +97,7 @@ export default async function TrainPage({ searchParams }: TrainPageProps) {
       <TabHeader
         avatarUrl={profile?.avatar_url ?? null}
         initials={initials}
-        greeting={greeting}
+        name={name}
         subtitle={subtitle}
       />
       {showSummary && justEnded?.ended_at ? (
@@ -123,9 +121,11 @@ export default async function TrainPage({ searchParams }: TrainPageProps) {
       )}
 
       {!active && (
-        <Link
+        // Hard-nav (plain <a>) instead of <Link> — soft nav can serve a
+        // stale RSC payload of /train/history when the user just logged
+        // a workout. Hard nav guarantees fresh stats + recent list.
+        <a
           href="/train/history"
-          prefetch={false}
           className="flex items-center justify-between rounded-xl border border-border bg-card px-4 py-3 hover:bg-accent"
         >
           <span className="flex items-center gap-2 text-sm font-medium">
@@ -133,7 +133,7 @@ export default async function TrainPage({ searchParams }: TrainPageProps) {
             View history & progression
           </span>
           <ChevronRight className="h-4 w-4 text-muted-foreground" />
-        </Link>
+        </a>
       )}
     </div>
   );

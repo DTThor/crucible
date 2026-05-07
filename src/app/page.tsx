@@ -22,7 +22,7 @@ import {
   resolveInitials,
   resolveName,
 } from "@/lib/profile/queries";
-import { formatTodayDate, getGreeting } from "@/lib/copy";
+import { formatTodayDate } from "@/lib/copy";
 
 export const dynamic = "force-dynamic";
 
@@ -56,7 +56,6 @@ export default async function TodayPage() {
   const now = new Date();
   const name = resolveName(profile, user.email ?? "");
   const initials = resolveInitials(name);
-  const greeting = `${getGreeting(now)}, ${name}`;
   const subtitle = formatTodayDate(now);
 
   return (
@@ -64,7 +63,7 @@ export default async function TodayPage() {
       <TabHeader
         avatarUrl={profile?.avatar_url ?? null}
         initials={initials}
-        greeting={greeting}
+        name={name}
         subtitle={subtitle}
       />
 
