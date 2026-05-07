@@ -13,8 +13,7 @@ import {
 import { Modal } from "@/components/modal";
 import { deleteWorkout } from "@/lib/training/actions";
 import {
-  formatDuration,
-  formatVolume,
+  formatHistoricSummary,
   type HistoricWorkout,
 } from "@/lib/training/history-utils";
 
@@ -114,11 +113,7 @@ export function WorkoutHistoryList({ workouts }: WorkoutHistoryListProps) {
                     )}
                   </div>
                   <p className="text-[10px] tabular-nums text-muted-foreground">
-                    {formatDay(w.started_at)} ·{" "}
-                    {formatDuration(w.duration_min)}
-                    {w.set_count > 0 && ` · ${w.set_count} sets`}
-                    {w.total_volume_lb > 0 &&
-                      ` · ${formatVolume(w.total_volume_lb)} lb`}
+                    {formatDay(w.started_at)} · {formatHistoricSummary(w)}
                   </p>
                 </div>
                 <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
@@ -161,10 +156,7 @@ export function WorkoutHistoryList({ workouts }: WorkoutHistoryListProps) {
               <p className="mt-1 text-xs text-muted-foreground">
                 {pendingDelete.title} ·{" "}
                 {formatDay(pendingDelete.started_at)} ·{" "}
-                {formatDuration(pendingDelete.duration_min)}
-                {pendingDelete.set_count > 0 &&
-                  ` · ${pendingDelete.set_count} sets`}
-                . Can&apos;t be undone.
+                {formatHistoricSummary(pendingDelete)}. Can&apos;t be undone.
               </p>
             )}
           </div>

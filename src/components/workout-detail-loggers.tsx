@@ -239,57 +239,71 @@ export function RecoveryLogger({
           const value = details[act.key] as number | null | undefined;
           const enabled = value != null;
           const Icon = act.icon;
+
+          // Disabled state: the entire card is a single button so any
+          // tap inside it enables the activity. No nested input → no
+          // event-bubbling concerns.
+          if (!enabled) {
+            return (
+              <button
+                key={act.key}
+                type="button"
+                onClick={() =>
+                  patch({ [act.key]: 0 } as Partial<RecoveryDetails>)
+                }
+                className="flex w-full items-center gap-2 rounded-md border border-border bg-card/40 p-2.5 text-left transition-colors hover:bg-accent"
+                aria-label={`Add ${act.label}`}
+              >
+                <span className="flex h-7 w-7 items-center justify-center rounded-md border border-input bg-muted">
+                  <Icon className={`h-3.5 w-3.5 ${act.iconColor}`} />
+                </span>
+                <span className="flex-1 text-sm font-medium">{act.label}</span>
+                <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                  Tap to add
+                </span>
+              </button>
+            );
+          }
+
+          // Enabled state: container is a div (input lives inside).
+          // The icon button to the left removes the activity.
           return (
             <div
               key={act.key}
-              className={`rounded-md border p-2.5 transition-colors ${
-                enabled
-                  ? "border-primary/40 bg-card"
-                  : "border-border bg-card/40"
-              }`}
+              className="rounded-md border border-primary/40 bg-card p-2.5 transition-colors"
             >
               <div className="flex items-center gap-2">
                 <button
                   type="button"
                   onClick={() => {
-                    if (enabled) {
-                      patch({ [act.key]: null } as Partial<RecoveryDetails>);
-                      // If it's the walk, also clear distance.
-                      if (act.key === "walk_min") {
-                        patch({
-                          walk_min: null,
-                          walk_distance_mi: null,
-                        } as Partial<RecoveryDetails>);
-                      }
+                    if (act.key === "walk_min") {
+                      patch({
+                        walk_min: null,
+                        walk_distance_mi: null,
+                      } as Partial<RecoveryDetails>);
                     } else {
-                      patch({ [act.key]: 0 } as Partial<RecoveryDetails>);
+                      patch({ [act.key]: null } as Partial<RecoveryDetails>);
                     }
                   }}
-                  className={`flex h-7 w-7 items-center justify-center rounded-md border ${
-                    enabled
-                      ? "border-primary/60 bg-primary/15"
-                      : "border-input bg-muted"
-                  }`}
-                  aria-label={`${enabled ? "Remove" : "Add"} ${act.label}`}
+                  className="flex h-7 w-7 items-center justify-center rounded-md border border-primary/60 bg-primary/15 hover:border-destructive/60 hover:bg-destructive/15"
+                  aria-label={`Remove ${act.label}`}
                 >
                   <Icon className={`h-3.5 w-3.5 ${act.iconColor}`} />
                 </button>
                 <span className="flex-1 text-sm font-medium">{act.label}</span>
-                {enabled && (
-                  <NumberField
-                    label=""
-                    value={value ?? null}
-                    onCommit={(n) =>
-                      patch({ [act.key]: n } as Partial<RecoveryDetails>)
-                    }
-                    unit="min"
-                    inline
-                    max={600}
-                  />
-                )}
+                <NumberField
+                  label=""
+                  value={value ?? null}
+                  onCommit={(n) =>
+                    patch({ [act.key]: n } as Partial<RecoveryDetails>)
+                  }
+                  unit="min"
+                  inline
+                  max={600}
+                />
               </div>
 
-              {enabled && act.key === "walk_min" && (
+              {act.key === "walk_min" && (
                 <div className="mt-2 flex items-center gap-2 pl-9">
                   <span className="text-xs text-muted-foreground">
                     Distance

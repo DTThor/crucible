@@ -3,6 +3,7 @@ import { requireUser } from "@/lib/auth-guard";
 import { ActiveWorkoutCard } from "@/components/active-workout-card";
 import { HeroWorkoutCard } from "@/components/hero-workout-card";
 import { WorkoutSummaryCard } from "@/components/workout-summary-card";
+import { CompletedTodayCard } from "@/components/completed-today-card";
 import { TabHeader } from "@/components/tab-header";
 import { formatTodayDate } from "@/lib/copy";
 import {
@@ -11,6 +12,7 @@ import {
   getWorkoutById,
   getWorkoutSets,
 } from "@/lib/training/queries";
+import { getTodayCompletedWorkouts } from "@/lib/training/history";
 import {
   getTemplate,
   getTodayTraining,
@@ -36,10 +38,11 @@ export default async function TrainPage({ searchParams }: TrainPageProps) {
   const user = await requireUser();
   const { ended: endedWorkoutId } = await searchParams;
 
-  const [profile, active, justEnded] = await Promise.all([
+  const [profile, active, justEnded, completedToday] = await Promise.all([
     getProfile(),
     getActiveWorkout(),
     endedWorkoutId ? getWorkoutById(endedWorkoutId) : Promise.resolve(null),
+    getTodayCompletedWorkouts(),
   ]);
 
   const showSummary =
@@ -90,7 +93,9 @@ export default async function TrainPage({ searchParams }: TrainPageProps) {
     ? `${formatTodayDate(now)} · Just finished`
     : active
       ? `${formatTodayDate(now)} · Workout in progress`
-      : formatTodayDate(now);
+      : completedToday.length > 0
+        ? `${formatTodayDate(now)} · You already trained today`
+        : formatTodayDate(now);
 
   return (
     <div className="space-y-5">
@@ -117,6 +122,8 @@ export default async function TrainPage({ searchParams }: TrainPageProps) {
           initialSets={setsForView}
           suggestions={suggestions}
         />
+      ) : completedToday.length > 0 ? (
+        <CompletedTodayCard workouts={completedToday} />
       ) : (
         <HeroWorkoutCard today={today} />
       )}

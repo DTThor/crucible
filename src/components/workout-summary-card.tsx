@@ -165,20 +165,24 @@ export function WorkoutSummaryCard({
             <p className="text-xs text-muted-foreground">{title}</p>
           </div>
 
-          <div className="rounded-xl border border-border bg-muted/20 px-4 py-5 text-center">
-            <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
-              Duration
-            </p>
-            <p className="mt-1 font-mono text-4xl font-semibold tabular-nums leading-none">
-              {formatDuration(durationMs)}
-            </p>
-            {sets.length > 0 && (
-              <p className="mt-2 text-xs text-muted-foreground">
-                {sets.length} set{sets.length === 1 ? "" : "s"} ·{" "}
-                {Math.round(totalVolumeLb).toLocaleString()} lb total volume
+          {/* Duration block only for lift workouts — for cardio +
+              recovery + GTX, the activity duration lives in details. */}
+          {type === "lift" && (
+            <div className="rounded-xl border border-border bg-muted/20 px-4 py-5 text-center">
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                Duration
               </p>
-            )}
-          </div>
+              <p className="mt-1 font-mono text-4xl font-semibold tabular-nums leading-none">
+                {formatDuration(durationMs)}
+              </p>
+              {sets.length > 0 && (
+                <p className="mt-2 text-xs text-muted-foreground">
+                  {sets.length} set{sets.length === 1 ? "" : "s"} ·{" "}
+                  {Math.round(totalVolumeLb).toLocaleString()} lb total volume
+                </p>
+              )}
+            </div>
+          )}
 
           {/* Type-specific details (cardio modality + minutes, recovery
               activities, GTX rating, etc.) — null for lift workouts */}

@@ -12,7 +12,7 @@
  * Bumping CACHE_VERSION evicts the old cache on activation.
  */
 
-const CACHE_VERSION = "crucible-v40";
+const CACHE_VERSION = "crucible-v41";
 
 self.addEventListener("install", () => {
   // Activate immediately on first install — don't wait for old SW to die.

@@ -36,7 +36,7 @@ export async function getRecentWorkouts(limit = 30): Promise<HistoricWorkout[]> 
   const { data, error } = await supabase
     .from("workouts")
     .select(
-      `id, type, template_slug, started_at, ended_at, status, notes,
+      `id, type, template_slug, started_at, ended_at, status, notes, details,
        workout_sets ( weight_kg, reps, was_warmup )`,
     )
     .neq("status", "active")
@@ -77,6 +77,84 @@ export async function getRecentWorkouts(limit = 30): Promise<HistoricWorkout[]> 
       duration_min: Math.max(0, (endMs - startMs) / 60_000),
       set_count: working.length,
       total_volume_lb: totalVolumeLb,
+      details:
+        (w as unknown as { details?: Record<string, unknown> | null })
+          .details ?? null,
+    };
+  });
+}
+
+/**
+ * All finished workouts that started today (in the user's local time —
+ * assumes America/Chicago to match the rest of the app). Newest first.
+ * Used by the Train tab to switch from the "today's plan" hero to a
+ * "you already trained today" card. Includes lift + cardio + recovery
+ * + GTX so a multi-session day (e.g. morning lift + afternoon sauna)
+ * surfaces both.
+ */
+export async function getTodayCompletedWorkouts(): Promise<HistoricWorkout[]> {
+  noStore();
+  const supabase = await createClient();
+
+  // Compute "start of today" in Chicago. Postgres handles either ISO
+  // shape against a timestamptz column.
+  const tz = "America/Chicago";
+  const ymd = new Intl.DateTimeFormat("en-CA", {
+    timeZone: tz,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+  const sinceLocalMidnight = `${ymd}T00:00:00-06:00`;
+
+  const { data, error } = await supabase
+    .from("workouts")
+    .select(
+      `id, type, template_slug, started_at, ended_at, status, notes, details,
+       workout_sets ( weight_kg, reps, was_warmup )`,
+    )
+    .neq("status", "active")
+    .not("ended_at", "is", null)
+    .gte("started_at", sinceLocalMidnight)
+    .order("started_at", { ascending: false });
+
+  if (error) {
+    console.error("getTodayCompletedWorkouts error:", error);
+    return [];
+  }
+
+  return (data ?? []).map((w) => {
+    const sets = (w.workout_sets ?? []) as Array<{
+      weight_kg: number | null;
+      reps: number | null;
+      was_warmup: boolean;
+    }>;
+    const working = sets.filter((s) => !s.was_warmup);
+    const totalVolumeLb = working.reduce((acc, s) => {
+      if (s.weight_kg == null || s.reps == null) return acc;
+      return acc + kgToLb(s.weight_kg) * s.reps;
+    }, 0);
+    const startMs = new Date(w.started_at).getTime();
+    const endMs = w.ended_at ? new Date(w.ended_at).getTime() : Date.now();
+    const template = w.template_slug ? getTemplate(w.template_slug) : null;
+    const title =
+      template?.name ?? w.type.charAt(0).toUpperCase() + w.type.slice(1);
+
+    return {
+      id: w.id,
+      type: w.type,
+      template_slug: w.template_slug,
+      title,
+      started_at: w.started_at,
+      ended_at: w.ended_at,
+      status: w.status,
+      notes: w.notes,
+      duration_min: Math.max(0, (endMs - startMs) / 60_000),
+      set_count: working.length,
+      total_volume_lb: totalVolumeLb,
+      details:
+        (w as unknown as { details?: Record<string, unknown> | null })
+          .details ?? null,
     };
   });
 }

@@ -155,24 +155,29 @@ export default async function WorkoutDetailPage({ params }: DetailProps) {
               </p>
             </div>
 
-            <div className="grid grid-cols-3 gap-2">
-              <SnapshotCell
-                label="Duration"
-                value={formatDuration(durationMin)}
-              />
-              <SnapshotCell
-                label="Sets"
-                value={workingSetCount.toString()}
-              />
-              <SnapshotCell
-                label="Volume"
-                value={
-                  totalVolumeLb > 0
-                    ? `${formatVolume(totalVolumeLb)} lb`
-                    : "—"
-                }
-              />
-            </div>
+            {/* Duration / Sets / Volume only make sense for lift days.
+                Cardio + recovery + GTX are activity-logged and capture
+                their own duration in the details payload. */}
+            {workout.type === "lift" && (
+              <div className="grid grid-cols-3 gap-2">
+                <SnapshotCell
+                  label="Duration"
+                  value={formatDuration(durationMin)}
+                />
+                <SnapshotCell
+                  label="Sets"
+                  value={workingSetCount.toString()}
+                />
+                <SnapshotCell
+                  label="Volume"
+                  value={
+                    totalVolumeLb > 0
+                      ? `${formatVolume(totalVolumeLb)} lb`
+                      : "—"
+                  }
+                />
+              </div>
+            )}
           </CardContent>
         </Card>
 
