@@ -1,3 +1,5 @@
+import Link from "next/link";
+import { BarChart3, ChevronRight } from "lucide-react";
 import { requireUser } from "@/lib/auth-guard";
 import { ActiveWorkoutCard } from "@/components/active-workout-card";
 import { HeroWorkoutCard } from "@/components/hero-workout-card";
@@ -118,6 +120,20 @@ export default async function TrainPage({ searchParams }: TrainPageProps) {
         />
       ) : (
         <HeroWorkoutCard today={today} />
+      )}
+
+      {!active && (
+        <Link
+          href="/train/history"
+          prefetch={false}
+          className="flex items-center justify-between rounded-xl border border-border bg-card px-4 py-3 hover:bg-accent"
+        >
+          <span className="flex items-center gap-2 text-sm font-medium">
+            <BarChart3 className="h-4 w-4 text-primary" />
+            View history & progression
+          </span>
+          <ChevronRight className="h-4 w-4 text-muted-foreground" />
+        </Link>
       )}
     </div>
   );
