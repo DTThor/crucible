@@ -99,30 +99,42 @@ import { kgToLb } from "@/lib/units";
 import type { ExerciseHistory } from "@/lib/training/suggestions";
 
 /**
- * Pull the user's most-recent rated set for a given exercise. Used by the
- * suggestion algorithm to place sensible placeholders in the inputs next
- * time the user hits this exercise. We require both `rpe` and `weight_kg`
- * so we have enough signal to make a recommendation.
+ * Pull the user's most-recent completed set for a given exercise — used
+ * by the suggestion algorithm to place sensible placeholders in the
+ * inputs next time the user hits this exercise. We require weight_kg +
+ * reps (need both to render a placeholder), but rpe is *optional*: if
+ * the user logged sets without rating, we still suggest "repeat last
+ * session". Rating just makes the suggestion smarter.
+ *
+ * IMPORTANT: this is also called from inside an active workout, so we
+ * must avoid returning the *current* workout's own sets — otherwise the
+ * suggestion flips to whatever was just logged. The caller can pass an
+ * `excludeWorkoutId` to filter the active session out.
  */
-export async function getLastRatedSetForExercise(
+export async function getLastSetForExercise(
   exerciseSlug: string,
+  excludeWorkoutId?: string,
 ): Promise<ExerciseHistory | null> {
   noStore();
   const supabase = await createClient();
-  const { data, error } = await supabase
+  let q = supabase
     .from("workout_sets")
     .select("weight_kg, reps, rpe")
     .eq("exercise_slug", exerciseSlug)
     .eq("was_warmup", false)
-    .not("rpe", "is", null)
     .not("weight_kg", "is", null)
     .not("reps", "is", null)
     .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .limit(1);
+
+  if (excludeWorkoutId) {
+    q = q.neq("workout_id", excludeWorkoutId);
+  }
+
+  const { data, error } = await q.maybeSingle();
 
   if (error || !data || data.weight_kg == null || data.reps == null) {
-    if (error) console.error("getLastRatedSetForExercise error:", error);
+    if (error) console.error("getLastSetForExercise error:", error);
     return null;
   }
   return {
@@ -131,6 +143,9 @@ export async function getLastRatedSetForExercise(
     rpe: data.rpe,
   };
 }
+
+/** @deprecated Use {@link getLastSetForExercise}. Kept for backwards-compat. */
+export const getLastRatedSetForExercise = getLastSetForExercise;
 
 /**
  * Most-recent completed sets for a given exercise. Returned newest first.

@@ -6,7 +6,7 @@ import { TabHeader } from "@/components/tab-header";
 import { formatTodayDate, getGreeting } from "@/lib/copy";
 import {
   getActiveWorkout,
-  getLastRatedSetForExercise,
+  getLastSetForExercise,
   getWorkoutById,
   getWorkoutSets,
 } from "@/lib/training/queries";
@@ -52,8 +52,10 @@ export default async function TrainPage({ searchParams }: TrainPageProps) {
       ? await getWorkoutSets(active.id)
       : [];
 
-  // Compute per-exercise suggestions for the active workout based on last
-  // rated session of each exercise.
+  // Compute per-exercise suggestions for the active workout based on the
+  // most recent prior session of each exercise. We exclude the current
+  // workout's own sets so the placeholders reflect what came BEFORE this
+  // session — not what was just logged a minute ago.
   let suggestions: Record<string, Suggestion | null> = {};
   if (active) {
     const template = active.template_slug
@@ -62,7 +64,10 @@ export default async function TrainPage({ searchParams }: TrainPageProps) {
     if (template) {
       const entries = await Promise.all(
         template.blocks.map(async (block) => {
-          const last = await getLastRatedSetForExercise(block.exerciseSlug);
+          const last = await getLastSetForExercise(
+            block.exerciseSlug,
+            active.id,
+          );
           const ex = getExercise(block.exerciseSlug);
           const fallbackReps =
             block.reps ?? ex?.defaultReps ?? 10;
