@@ -15,7 +15,7 @@
  * Bumping CACHE_VERSION evicts the old cache on activation.
  */
 
-const CACHE_VERSION = "crucible-v48";
+const CACHE_VERSION = "crucible-v49";
 
 // Path prefixes that are safe to cache aggressively. These are
 // content-addressed (Next chunks include hashes; icons + manifest are

@@ -15,12 +15,18 @@ interface WeightTrendChartProps {
 interface Point {
   ts: number; // ms
   lb: number;
-  rollingLb: number; // 7-day rolling average
 }
 
 /**
- * 30-day weight trend with raw points + 7-day rolling average line.
- * Hand-rolled SVG so we don't drag in a chart lib for one chart.
+ * 30-day weight trend. Line connects the raw weigh-ins directly so
+ * the dots and the line always agree visually. Hand-rolled SVG so we
+ * don't drag in a chart lib for one chart.
+ *
+ * (Earlier versions overlaid a 7-day rolling average on top of raw
+ * dots — mathematically nice but visually confusing when there are
+ * only a handful of points clustered together. We can layer that back
+ * in once a user has weeks of dense data and the smoother actually
+ * helps read the trend.)
  */
 export function WeightTrendChart({ logs, goalLb }: WeightTrendChartProps) {
   const [hoverIdx, setHoverIdx] = useState<number | null>(null);
@@ -34,26 +40,13 @@ export function WeightTrendChart({ logs, goalLb }: WeightTrendChartProps) {
     );
   }
 
-  // Transform to lb + rolling average
+  // Transform to lb, sorted oldest → newest for the line.
   const points: Point[] = logs
     .map((l) => ({
       ts: new Date(l.logged_at).getTime(),
       lb: kgToLb(l.weight_kg),
-      rollingLb: 0,
     }))
     .sort((a, b) => a.ts - b.ts);
-
-  const ROLLING_WINDOW_MS = 7 * 24 * 3_600_000;
-  for (let i = 0; i < points.length; i++) {
-    const cutoff = points[i].ts - ROLLING_WINDOW_MS;
-    let sum = 0;
-    let count = 0;
-    for (let j = i; j >= 0 && points[j].ts >= cutoff; j--) {
-      sum += points[j].lb;
-      count++;
-    }
-    points[i].rollingLb = count > 0 ? sum / count : points[i].lb;
-  }
 
   // Chart geometry
   const width = 320;
@@ -68,7 +61,7 @@ export function WeightTrendChart({ logs, goalLb }: WeightTrendChartProps) {
   const xRange = now - start;
 
   // Y range: from data + goal, with padding
-  const allValues = points.flatMap((p) => [p.lb, p.rollingLb]);
+  const allValues = points.map((p) => p.lb);
   if (goalLb != null) allValues.push(goalLb);
   const minV = Math.min(...allValues) - 1.5;
   const maxV = Math.max(...allValues) + 1.5;
@@ -79,9 +72,9 @@ export function WeightTrendChart({ logs, goalLb }: WeightTrendChartProps) {
   const y = (lb: number) =>
     padding.top + ((maxV - lb) / yRange) * innerH;
 
-  // Build the rolling-average path
-  const rollingPath = points
-    .map((p, i) => `${i === 0 ? "M" : "L"} ${x(p.ts)} ${y(p.rollingLb)}`)
+  // Line connects the actual data points.
+  const linePath = points
+    .map((p, i) => `${i === 0 ? "M" : "L"} ${x(p.ts)} ${y(p.lb)}`)
     .join(" ");
 
   const latest = points[points.length - 1];
@@ -178,9 +171,9 @@ export function WeightTrendChart({ logs, goalLb }: WeightTrendChartProps) {
           </g>
         )}
 
-        {/* Rolling average line */}
+        {/* Line connecting the weigh-ins */}
         <path
-          d={rollingPath}
+          d={linePath}
           fill="none"
           stroke="hsl(212 95% 68%)"
           strokeWidth={2}
