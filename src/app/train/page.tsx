@@ -5,6 +5,7 @@ import { HeroWorkoutCard } from "@/components/hero-workout-card";
 import { WorkoutSummaryCard } from "@/components/workout-summary-card";
 import { CompletedTodayCard } from "@/components/completed-today-card";
 import { TabHeader } from "@/components/tab-header";
+import { BfcacheRefresher } from "@/components/bfcache-refresher";
 import { formatTodayDate } from "@/lib/copy";
 import {
   getActiveWorkout,
@@ -13,10 +14,8 @@ import {
   getWorkoutSets,
 } from "@/lib/training/queries";
 import { getTodayCompletedWorkouts } from "@/lib/training/history";
-import {
-  getTemplate,
-  getTodayTraining,
-} from "@/lib/training/templates";
+import { getTemplate } from "@/lib/training/templates";
+import { getPlannedDay } from "@/lib/planning/queries";
 import { getExercise } from "@/lib/training/exercises";
 import {
   suggestNext,
@@ -38,12 +37,16 @@ export default async function TrainPage({ searchParams }: TrainPageProps) {
   const user = await requireUser();
   const { ended: endedWorkoutId } = await searchParams;
 
-  const [profile, active, justEnded, completedToday] = await Promise.all([
-    getProfile(),
-    getActiveWorkout(),
-    endedWorkoutId ? getWorkoutById(endedWorkoutId) : Promise.resolve(null),
-    getTodayCompletedWorkouts(),
-  ]);
+  const [profile, active, justEnded, completedToday, plan] =
+    await Promise.all([
+      getProfile(),
+      getActiveWorkout(),
+      endedWorkoutId
+        ? getWorkoutById(endedWorkoutId)
+        : Promise.resolve(null),
+      getTodayCompletedWorkouts(),
+      getPlannedDay(new Date()),
+    ]);
 
   const showSummary =
     justEnded &&
@@ -85,7 +88,27 @@ export default async function TrainPage({ searchParams }: TrainPageProps) {
     }
   }
 
-  const today = getTodayTraining();
+  // Map the planner's per-day view onto the shape HeroWorkoutCard
+  // already understands. Letter-for-letter the same when the user has
+  // no override; otherwise reflects the planned slot.
+  const today: {
+    type: typeof plan.workoutType;
+    templateSlug?: string;
+    label: string;
+  } = {
+    type: plan.workoutType,
+    templateSlug: plan.workoutTemplateSlug ?? undefined,
+    label:
+      plan.workoutType === "lift" && plan.workoutTemplateSlug
+        ? getTemplate(plan.workoutTemplateSlug)?.name ?? "Lift"
+        : plan.workoutType === "gtx"
+          ? "GTX class"
+          : plan.workoutType === "cardio"
+            ? "Cardio"
+            : plan.workoutType === "recovery"
+              ? "Recovery"
+              : "Rest day",
+  };
   const now = new Date();
   const name = resolveName(profile, user.email ?? "");
   const initials = resolveInitials(name);
@@ -99,6 +122,7 @@ export default async function TrainPage({ searchParams }: TrainPageProps) {
 
   return (
     <div className="space-y-5">
+      <BfcacheRefresher />
       <TabHeader
         avatarUrl={profile?.avatar_url ?? null}
         initials={initials}

@@ -8,8 +8,8 @@ import { WaterQuickLog } from "@/components/water-quick-log";
 import { WeightCard } from "@/components/weight-card";
 import { TabHeader } from "@/components/tab-header";
 import { getActiveFast, getFastById } from "@/lib/fasting/queries";
-import { getTodayProtocol } from "@/lib/fasting/templates";
 import { PROTOCOLS } from "@/lib/fasting/protocols";
+import { getPlannedDay } from "@/lib/planning/queries";
 import { getRecentWaterLogs } from "@/lib/water/queries";
 import { getLatestWeight, getWeightAround } from "@/lib/weight/queries";
 import {
@@ -36,6 +36,7 @@ export default async function FastPage({ searchParams }: FastPageProps) {
     latestWeight,
     weekAgoWeight,
     justEnded,
+    plan,
   ] = await Promise.all([
     getProfile(),
     getActiveFast(),
@@ -43,9 +44,10 @@ export default async function FastPage({ searchParams }: FastPageProps) {
     getLatestWeight(),
     getWeightAround(7),
     endedFastId ? getFastById(endedFastId) : Promise.resolve(null),
+    getPlannedDay(new Date()),
   ]);
 
-  const todayProtocol = getTodayProtocol();
+  const todayProtocol = plan.fastingProtocolSlug;
   const todayName = PROTOCOLS[todayProtocol].name;
 
   const now = new Date();

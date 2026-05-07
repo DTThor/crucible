@@ -8,13 +8,13 @@ import { TodayWorkoutSnapshot } from "@/components/today-workout-snapshot";
 import { WaterQuickLog } from "@/components/water-quick-log";
 import { WeightCard } from "@/components/weight-card";
 import { getActiveFast } from "@/lib/fasting/queries";
-import { getTodayProtocol } from "@/lib/fasting/templates";
 import { PROTOCOLS } from "@/lib/fasting/protocols";
 import {
   getActiveWorkout,
   getWorkoutSets,
 } from "@/lib/training/queries";
-import { getTodayTraining } from "@/lib/training/templates";
+import { WORKOUT_TEMPLATES } from "@/lib/training/templates";
+import { getPlannedDay } from "@/lib/planning/queries";
 import { getRecentWaterLogs } from "@/lib/water/queries";
 import { getLatestWeight, getWeightAround } from "@/lib/weight/queries";
 import {
@@ -26,6 +26,19 @@ import { formatTodayDate } from "@/lib/copy";
 
 export const dynamic = "force-dynamic";
 
+import type { PlannedDay } from "@/lib/planning/types";
+
+function workoutLabel(plan: PlannedDay): string {
+  if (plan.workoutType === "lift" && plan.workoutTemplateSlug) {
+    const t = WORKOUT_TEMPLATES[plan.workoutTemplateSlug];
+    return t?.name ?? "Lift";
+  }
+  if (plan.workoutType === "gtx") return "GTX class";
+  if (plan.workoutType === "cardio") return "Cardio";
+  if (plan.workoutType === "recovery") return "Recovery";
+  return "Rest day";
+}
+
 export default async function TodayPage() {
   const user = await requireUser();
 
@@ -36,6 +49,7 @@ export default async function TodayPage() {
     waterLogs,
     latestWeight,
     weekAgoWeight,
+    plan,
   ] = await Promise.all([
     getProfile(),
     getActiveFast(),
@@ -43,15 +57,15 @@ export default async function TodayPage() {
     getRecentWaterLogs(7),
     getLatestWeight(),
     getWeightAround(7),
+    getPlannedDay(new Date()),
   ]);
 
   const activeWorkoutSets = activeWorkout
     ? await getWorkoutSets(activeWorkout.id)
     : [];
 
-  const todayProtocol = getTodayProtocol();
-  const todayProtocolName = PROTOCOLS[todayProtocol].name;
-  const todayTraining = getTodayTraining();
+  const todayProtocolName = PROTOCOLS[plan.fastingProtocolSlug].name;
+  const todayTrainingLabel = workoutLabel(plan);
 
   const now = new Date();
   const name = resolveName(profile, user.email ?? "");
@@ -113,7 +127,7 @@ export default async function TodayPage() {
             <Link href="/train" className="block text-sm text-muted-foreground">
               Today's plan:{" "}
               <span className="font-medium text-foreground">
-                {todayTraining.label}
+                {todayTrainingLabel}
               </span>
               . Start it from the Train tab.
             </Link>
