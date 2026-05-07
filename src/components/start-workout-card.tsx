@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dumbbell, Activity, Coffee, Sparkles } from "lucide-react";
 import { WorkoutTypePicker } from "@/components/workout-type-picker";
@@ -26,7 +25,6 @@ const TYPE_ICONS = {
 } as const;
 
 export function StartWorkoutCard({ today }: StartWorkoutCardProps) {
-  const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -42,8 +40,11 @@ export function StartWorkoutCard({ today }: StartWorkoutCardProps) {
       const res = await startWorkout({ type, templateSlug });
       if (!res.ok) {
         setError(res.error);
+        return;
       }
-      router.refresh();
+      // See HeroWorkoutCard for the rationale — hard nav so per-exercise
+      // suggestions actually load on the very first render.
+      window.location.href = "/train";
     });
   }
 

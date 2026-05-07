@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
 import { Dumbbell, Activity, Sparkles, Coffee, Play } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { WorkoutTypePicker } from "@/components/workout-type-picker";
@@ -50,7 +49,6 @@ const FALLBACK_BLURB: Record<WorkoutType, string> = {
 };
 
 export function HeroWorkoutCard({ today }: HeroWorkoutCardProps) {
-  const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -69,8 +67,17 @@ export function HeroWorkoutCard({ today }: HeroWorkoutCardProps) {
     setPickerOpen(false);
     startTransition(async () => {
       const res = await startWorkout({ type, templateSlug });
-      if (!res.ok) setError(res.error);
-      router.refresh();
+      if (!res.ok) {
+        setError(res.error);
+        return;
+      }
+      // Hard nav rather than router.refresh() — the page needs to fetch
+      // per-exercise suggestions, which live in a branch that wasn't
+      // rendered before (no active workout). Next's client router cache
+      // can return a stale RSC payload here, so on the first render the
+      // suggestions come back empty. A real navigation guarantees a
+      // clean fetch with the new active workout in scope.
+      window.location.href = "/train";
     });
   }
 
