@@ -95,9 +95,45 @@ export async function getWorkoutSets(workoutId: string): Promise<WorkoutSet[]> {
   return data ?? [];
 }
 
+import { kgToLb } from "@/lib/units";
+import type { ExerciseHistory } from "@/lib/training/suggestions";
+
 /**
- * Most-recent completed sets for a given exercise, used by the smart
- * weight suggestion logic in Slice 2B. Returned newest first.
+ * Pull the user's most-recent rated set for a given exercise. Used by the
+ * suggestion algorithm to place sensible placeholders in the inputs next
+ * time the user hits this exercise. We require both `rpe` and `weight_kg`
+ * so we have enough signal to make a recommendation.
+ */
+export async function getLastRatedSetForExercise(
+  exerciseSlug: string,
+): Promise<ExerciseHistory | null> {
+  noStore();
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("workout_sets")
+    .select("weight_kg, reps, rpe")
+    .eq("exercise_slug", exerciseSlug)
+    .eq("was_warmup", false)
+    .not("rpe", "is", null)
+    .not("weight_kg", "is", null)
+    .not("reps", "is", null)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error || !data || data.weight_kg == null || data.reps == null) {
+    if (error) console.error("getLastRatedSetForExercise error:", error);
+    return null;
+  }
+  return {
+    weight_lb: kgToLb(data.weight_kg),
+    reps: data.reps,
+    rpe: data.rpe,
+  };
+}
+
+/**
+ * Most-recent completed sets for a given exercise. Returned newest first.
  */
 export async function getRecentSetsForExercise(
   exerciseSlug: string,

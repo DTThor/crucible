@@ -6,10 +6,19 @@ import { TabHeader } from "@/components/tab-header";
 import { formatTodayDate, getGreeting } from "@/lib/copy";
 import {
   getActiveWorkout,
+  getLastRatedSetForExercise,
   getWorkoutById,
   getWorkoutSets,
 } from "@/lib/training/queries";
-import { getTodayTraining } from "@/lib/training/templates";
+import {
+  getTemplate,
+  getTodayTraining,
+} from "@/lib/training/templates";
+import { getExercise } from "@/lib/training/exercises";
+import {
+  suggestNext,
+  type Suggestion,
+} from "@/lib/training/suggestions";
 import {
   getProfile,
   resolveInitials,
@@ -37,12 +46,35 @@ export default async function TrainPage({ searchParams }: TrainPageProps) {
     justEnded.status !== "active" &&
     justEnded.ended_at != null;
 
-  // Fetch sets for whichever workout we're showing
   const setsForView = showSummary
     ? await getWorkoutSets(justEnded.id)
     : active
       ? await getWorkoutSets(active.id)
       : [];
+
+  // Compute per-exercise suggestions for the active workout based on last
+  // rated session of each exercise.
+  let suggestions: Record<string, Suggestion | null> = {};
+  if (active) {
+    const template = active.template_slug
+      ? getTemplate(active.template_slug)
+      : null;
+    if (template) {
+      const entries = await Promise.all(
+        template.blocks.map(async (block) => {
+          const last = await getLastRatedSetForExercise(block.exerciseSlug);
+          const ex = getExercise(block.exerciseSlug);
+          const fallbackReps =
+            block.reps ?? ex?.defaultReps ?? 10;
+          return [
+            block.exerciseSlug,
+            suggestNext(last, fallbackReps),
+          ] as const;
+        }),
+      );
+      suggestions = Object.fromEntries(entries);
+    }
+  }
 
   const today = getTodayTraining();
   const now = new Date();
@@ -74,7 +106,11 @@ export default async function TrainPage({ searchParams }: TrainPageProps) {
           sets={setsForView}
         />
       ) : active ? (
-        <ActiveWorkoutCard workout={active} initialSets={setsForView} />
+        <ActiveWorkoutCard
+          workout={active}
+          initialSets={setsForView}
+          suggestions={suggestions}
+        />
       ) : (
         <HeroWorkoutCard today={today} />
       )}

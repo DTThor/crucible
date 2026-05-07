@@ -1,13 +1,27 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Circle, CheckCircle2, Plus, Minus } from "lucide-react";
-import { addSet, deleteSet, updateSet } from "@/lib/training/actions";
+import {
+  Circle,
+  CheckCircle2,
+  Plus,
+  Minus,
+  Pencil,
+  Sparkles,
+} from "lucide-react";
+import {
+  addSet,
+  deleteSet,
+  rateExerciseDifficulty,
+  updateSet,
+} from "@/lib/training/actions";
 import { kgToLb } from "@/lib/units";
 import { cn } from "@/lib/utils";
+import { RpePicker } from "@/components/rpe-picker";
 import type { Exercise } from "@/lib/training/exercises";
 import type { WorkoutSet } from "@/lib/training/queries";
+import type { Suggestion } from "@/lib/training/suggestions";
 
 interface ExerciseSetLoggerProps {
   workoutId: string;
@@ -15,6 +29,8 @@ interface ExerciseSetLoggerProps {
   prescribedSets: number;
   prescribedReps: number;
   initialSets: WorkoutSet[];
+  /** Suggested weight + reps from last time the user did this exercise. */
+  suggestion: Suggestion | null;
 }
 
 interface RowState {
@@ -31,6 +47,14 @@ const EQUIPMENT_LABEL: Record<string, string | null> = {
   machine: "Machine",
   bodyweight: "Bodyweight",
   cardio: null,
+};
+
+const DIFFICULTY_ANCHORS: Record<number, string> = {
+  6: "easy",
+  7: "moderate",
+  8: "hard",
+  9: "near max",
+  10: "max effort",
 };
 
 function buildRows(
@@ -56,18 +80,21 @@ export function ExerciseSetLogger({
   prescribedSets,
   prescribedReps,
   initialSets,
+  suggestion,
 }: ExerciseSetLoggerProps) {
   const router = useRouter();
   const [rows, setRows] = useState<RowState[]>(() =>
     buildRows(prescribedSets, initialSets),
   );
+  // Pull existing rating off any saved set (rateExerciseDifficulty writes
+  // the same rpe to every non-warmup set in the exercise).
+  const [exerciseRating, setExerciseRating] = useState<number | null>(() => {
+    const rated = initialSets.find((s) => s.rpe != null && !s.was_warmup);
+    return rated?.rpe ?? null;
+  });
+  const [editingRating, setEditingRating] = useState(false);
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
-
-  // No auto-sync from server. Local state is the source of truth during a
-  // workout. Server state is loaded from `initialSets` on mount only — and
-  // since each set save is local-only (no router.refresh), `initialSets`
-  // doesn't change underneath us and can't clobber the user's work.
 
   const allCompleted = rows.length > 0 && rows.every((r) => r.completed);
   const completedCount = rows.filter((r) => r.completed).length;
@@ -102,7 +129,6 @@ export function ExerciseSetLogger({
     setError(null);
     const row = rows[idx];
 
-    // Uncomplete (and delete from DB) if already completed
     if (row.completed && row.dbId) {
       const dbId = row.dbId;
       patchRow(idx, { completed: false, dbId: null });
@@ -112,7 +138,6 @@ export function ExerciseSetLogger({
       return;
     }
 
-    // Complete: validate then save
     const w = parseFloat(row.weight);
     const r = parseInt(row.reps, 10);
     if (!Number.isFinite(w) || w <= 0) {
@@ -132,20 +157,18 @@ export function ExerciseSetLogger({
         setNumber: idx + 1,
         weightLb: w,
         reps: r,
+        rpe: exerciseRating ?? undefined,
       });
       if (res.ok && "setId" in res && res.setId) {
         patchRow(idx, { dbId: res.setId });
-        // No router.refresh — server data only matters on next nav/end.
       } else if (!res.ok) {
         patchRow(idx, { completed: false });
         setError(res.error);
-        // Refresh on error in case the workout was deleted out from under us.
         router.refresh();
       }
     });
   }
 
-  // Auto-update on blur once the row is already saved (so edits persist).
   function handleBlur(idx: number) {
     const row = rows[idx];
     if (!row.completed || !row.dbId) return;
@@ -157,6 +180,36 @@ export function ExerciseSetLogger({
       await updateSet(dbId, { weightLb: w, reps: r });
     });
   }
+
+  function handleRate(rpe: number) {
+    setError(null);
+    const previous = exerciseRating;
+    setExerciseRating(rpe);
+    setEditingRating(false);
+    startTransition(async () => {
+      const res = await rateExerciseDifficulty(
+        workoutId,
+        exercise.slug,
+        rpe,
+      );
+      if (!res.ok) {
+        setExerciseRating(previous);
+        setError(res.error);
+      }
+    });
+  }
+
+  // Placeholder helpers — pull from suggestion when available.
+  const weightPlaceholder = suggestion
+    ? suggestion.weight_lb % 1 === 0
+      ? suggestion.weight_lb.toString()
+      : suggestion.weight_lb.toFixed(1)
+    : "lbs";
+  const repsPlaceholder = suggestion
+    ? suggestion.reps.toString()
+    : prescribedReps
+      ? prescribedReps.toString()
+      : "reps";
 
   return (
     <article
@@ -192,6 +245,14 @@ export function ExerciseSetLogger({
           )}
         </span>
       </div>
+
+      {/* Suggestion hint */}
+      {suggestion && completedCount === 0 && (
+        <p className="flex items-center gap-1.5 rounded-lg bg-muted/40 px-3 py-1.5 text-xs text-muted-foreground">
+          <Sparkles className="h-3 w-3 text-primary" />
+          Last time: {suggestion.reasoning}
+        </p>
+      )}
 
       {error && (
         <p className="rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2 text-xs text-destructive">
@@ -233,7 +294,7 @@ export function ExerciseSetLogger({
               value={row.weight}
               onChange={(e) => patchRow(i, { weight: e.target.value })}
               onBlur={() => handleBlur(i)}
-              placeholder="lbs"
+              placeholder={weightPlaceholder}
               className={cn(
                 "h-10 w-full min-w-0 rounded-lg border bg-muted/30 px-1 text-center font-mono text-sm font-semibold tabular-nums focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                 row.completed ? "border-emerald-500/40" : "border-border",
@@ -250,7 +311,7 @@ export function ExerciseSetLogger({
               value={row.reps}
               onChange={(e) => patchRow(i, { reps: e.target.value })}
               onBlur={() => handleBlur(i)}
-              placeholder={prescribedReps ? prescribedReps.toString() : "reps"}
+              placeholder={repsPlaceholder}
               className={cn(
                 "h-10 w-full min-w-0 rounded-lg border bg-muted/30 px-1 text-center font-mono text-sm font-semibold tabular-nums focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                 row.completed ? "border-emerald-500/40" : "border-border",
@@ -306,6 +367,46 @@ export function ExerciseSetLogger({
           </button>
         )}
       </div>
+
+      {/* Difficulty rating — appears after all sets are complete */}
+      {allCompleted && (
+        <div className="rounded-lg border border-border bg-muted/30 p-3">
+          {exerciseRating == null || editingRating ? (
+            <>
+              <p className="mb-2 text-xs font-medium">
+                How hard was this exercise?
+              </p>
+              <RpePicker
+                value={editingRating ? exerciseRating : null}
+                onChange={handleRate}
+              />
+              <p className="mt-1.5 text-[10px] text-muted-foreground">
+                Drives next session's suggested weight + reps.
+              </p>
+            </>
+          ) : (
+            <div className="flex items-center justify-between">
+              <span className="text-sm">
+                <span className="text-muted-foreground">Difficulty:</span>{" "}
+                <span className="font-semibold">{exerciseRating}</span>
+                {DIFFICULTY_ANCHORS[exerciseRating] && (
+                  <span className="ml-1 italic text-muted-foreground">
+                    · {DIFFICULTY_ANCHORS[exerciseRating]}
+                  </span>
+                )}
+              </span>
+              <button
+                type="button"
+                onClick={() => setEditingRating(true)}
+                className="inline-flex items-center gap-1 text-[10px] text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+              >
+                <Pencil className="h-3 w-3" />
+                Change
+              </button>
+            </div>
+          )}
+        </div>
+      )}
     </article>
   );
 }

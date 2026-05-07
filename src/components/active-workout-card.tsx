@@ -14,16 +14,20 @@ import {
 import { getExercise } from "@/lib/training/exercises";
 import { getTemplate } from "@/lib/training/templates";
 import type { ActiveWorkout, WorkoutSet } from "@/lib/training/queries";
+import type { Suggestion } from "@/lib/training/suggestions";
 import { EditWorkoutStartTimeModal } from "@/components/edit-workout-start-time-modal";
 
 interface ActiveWorkoutCardProps {
   workout: ActiveWorkout;
   initialSets: WorkoutSet[];
+  /** Per-exercise suggestion keyed by exercise slug (or null if no history). */
+  suggestions: Record<string, Suggestion | null>;
 }
 
 export function ActiveWorkoutCard({
   workout,
   initialSets,
+  suggestions,
 }: ActiveWorkoutCardProps) {
   const router = useRouter();
   const [now, setNow] = useState(() => Date.now());
@@ -167,6 +171,7 @@ export function ActiveWorkoutCard({
                     prescribedSets={block.sets}
                     prescribedReps={block.reps ?? ex.defaultReps ?? 10}
                     initialSets={setsByExercise[block.exerciseSlug] ?? []}
+                    suggestion={suggestions[block.exerciseSlug] ?? null}
                   />
                 );
               })}

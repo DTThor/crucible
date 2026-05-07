@@ -163,6 +163,37 @@ export async function updateSet(
   return { ok: true };
 }
 
+/**
+ * Apply a per-exercise difficulty rating. Writes the same rpe value to
+ * every non-warmup set for this exercise within the workout, so any
+ * future query can read the rating from any set.
+ */
+export async function rateExerciseDifficulty(
+  workoutId: string,
+  exerciseSlug: string,
+  rpe: number,
+): Promise<ActionResult> {
+  const { supabase } = await authedClient();
+
+  if (!Number.isFinite(rpe) || rpe < 1 || rpe > 10) {
+    return fail("Difficulty must be 1–10.");
+  }
+
+  const { error } = await supabase
+    .from("workout_sets")
+    .update({ rpe })
+    .eq("workout_id", workoutId)
+    .eq("exercise_slug", exerciseSlug)
+    .eq("was_warmup", false);
+
+  if (error) {
+    console.error("rateExerciseDifficulty error:", error);
+    return fail(error.message);
+  }
+  revalidatePath("/", "layout");
+  return { ok: true };
+}
+
 export async function deleteSet(setId: string): Promise<ActionResult> {
   const { supabase } = await authedClient();
   const { error } = await supabase
