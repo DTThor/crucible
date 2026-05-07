@@ -124,6 +124,7 @@ export default async function TrainPage({ searchParams }: TrainPageProps) {
         // Hard-nav (plain <a>) instead of <Link> — soft nav can serve a
         // stale RSC payload of /train/history when the user just logged
         // a workout. Hard nav guarantees fresh stats + recent list.
+        // eslint-disable-next-line @next/next/no-html-link-for-pages
         <a
           href="/train/history"
           className="flex items-center justify-between rounded-xl border border-border bg-card px-4 py-3 hover:bg-accent"
