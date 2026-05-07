@@ -64,19 +64,10 @@ export function ExerciseSetLogger({
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
-  // Re-derive rows when server data changes (e.g., after refresh from another
-  // tab). Only adopt new server state if the local row count matches what the
-  // server has — otherwise the user's adding/removing rows locally and we
-  // shouldn't clobber their work.
-  useEffect(() => {
-    setRows((prev) => {
-      const dbCount = initialSets.length;
-      const localUnsavedCount = prev.filter((r) => !r.dbId).length;
-      // Only re-derive if we don't have unsaved local rows
-      if (localUnsavedCount > 0) return prev;
-      return buildRows(Math.max(prescribedSets, prev.length), initialSets);
-    });
-  }, [initialSets, prescribedSets]);
+  // No auto-sync from server. Local state is the source of truth during a
+  // workout. Server state is loaded from `initialSets` on mount only — and
+  // since each set save is local-only (no router.refresh), `initialSets`
+  // doesn't change underneath us and can't clobber the user's work.
 
   const allCompleted = rows.length > 0 && rows.every((r) => r.completed);
   const completedCount = rows.filter((r) => r.completed).length;
@@ -103,7 +94,6 @@ export function ExerciseSetLogger({
       const dbId = last.dbId;
       startTransition(async () => {
         await deleteSet(dbId);
-        router.refresh();
       });
     }
   }
@@ -118,7 +108,6 @@ export function ExerciseSetLogger({
       patchRow(idx, { completed: false, dbId: null });
       startTransition(async () => {
         await deleteSet(dbId);
-        router.refresh();
       });
       return;
     }
@@ -146,12 +135,11 @@ export function ExerciseSetLogger({
       });
       if (res.ok && "setId" in res && res.setId) {
         patchRow(idx, { dbId: res.setId });
-        router.refresh();
+        // No router.refresh — server data only matters on next nav/end.
       } else if (!res.ok) {
         patchRow(idx, { completed: false });
         setError(res.error);
-        // Refresh in case the workout was deleted out from under us — the
-        // page will then re-render to the start screen.
+        // Refresh on error in case the workout was deleted out from under us.
         router.refresh();
       }
     });

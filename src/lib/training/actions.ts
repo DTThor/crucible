@@ -259,6 +259,45 @@ export async function deleteAllWorkouts(): Promise<{
 }
 
 /**
+ * Update started_at AND ended_at on a finished workout. Used from the
+ * post-end summary view. Validates end > start and not in future.
+ */
+export async function updateWorkoutTimes(
+  workoutId: string,
+  startedAtIso: string,
+  endedAtIso: string,
+): Promise<ActionResult> {
+  const { supabase } = await authedClient();
+
+  const start = new Date(startedAtIso);
+  const end = new Date(endedAtIso);
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+    return fail("Invalid date.");
+  }
+  if (end.getTime() <= start.getTime()) {
+    return fail("End time must be after start.");
+  }
+  if (end.getTime() > Date.now()) {
+    return fail("End time can't be in the future.");
+  }
+
+  const { error } = await supabase
+    .from("workouts")
+    .update({
+      started_at: start.toISOString(),
+      ended_at: end.toISOString(),
+    })
+    .eq("id", workoutId);
+
+  if (error) {
+    console.error("updateWorkoutTimes error:", error);
+    return fail(error.message);
+  }
+  revalidatePath("/", "layout");
+  return { ok: true };
+}
+
+/**
  * Update started_at on the active workout. Doesn't shift any of the
  * existing set timestamps — the user is just correcting when they began.
  */

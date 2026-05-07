@@ -47,6 +47,35 @@ export async function getActiveWorkout(): Promise<ActiveWorkout | null> {
   return data?.[0] ?? null;
 }
 
+export interface WorkoutById {
+  id: string;
+  type: string;
+  template_slug: string | null;
+  started_at: string;
+  ended_at: string | null;
+  status: string;
+  notes: string | null;
+}
+
+/** Fetch a single workout by id (RLS confines to user's own). */
+export async function getWorkoutById(
+  id: string,
+): Promise<WorkoutById | null> {
+  noStore();
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("workouts")
+    .select("id, type, template_slug, started_at, ended_at, status, notes")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (error) {
+    console.error("getWorkoutById error:", error);
+    return null;
+  }
+  return data;
+}
+
 /** All sets for a workout, ordered by set_number. */
 export async function getWorkoutSets(workoutId: string): Promise<WorkoutSet[]> {
   noStore();
