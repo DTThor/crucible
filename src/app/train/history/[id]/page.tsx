@@ -1,7 +1,7 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ChevronLeft, Trophy, XCircle } from "lucide-react";
+import { Trophy, XCircle } from "lucide-react";
 import { requireUser } from "@/lib/auth-guard";
+import { SmartBackButton } from "@/components/smart-back-button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   getWorkoutById,
@@ -123,13 +123,7 @@ export default async function WorkoutDetailPage({ params }: DetailProps) {
         className="sticky top-0 z-30 -mx-4 mb-3 flex items-center gap-2 border-b border-border bg-background/80 px-4 py-3 backdrop-blur"
         style={{ paddingTop: "max(env(safe-area-inset-top), 0.75rem)" }}
       >
-        <Link
-          href="/train/history"
-          className="-ml-2 flex items-center gap-0.5 rounded-md p-1 text-muted-foreground hover:text-foreground"
-        >
-          <ChevronLeft className="h-5 w-5" />
-          <span className="text-sm">History</span>
-        </Link>
+        <SmartBackButton fallbackHref="/train/history" />
       </header>
 
       <div className="space-y-4">
