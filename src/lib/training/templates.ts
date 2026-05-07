@@ -65,13 +65,19 @@ export const WORKOUT_TEMPLATES: Record<string, WorkoutTemplate> = {
 /**
  * Default weekly training template. 0=Sun ... 6=Sat.
  *
- * Aligned with the fasting schedule:
- *   Mon/Thu (OMAD)   → GTX class (hardest workouts on refeed days)
- *   Tue (OMAD)       → 30m DB upper + sauna/cold (Phase 2C)
- *   Wed (36h fast)   → recovery (light walk + sauna only — don't dig a hole)
- *   Fri (16:8)       → 30m KB + leg press + sauna/cold
- *   Sat (16:8)       → GTX or zone-2 cardio
- *   Sun (OMAD)       → rest / mobility
+ * Aligned with the new fasting schedule (42h Sun→Tue, OMAD-heavy
+ * weekdays, 16:8 weekends):
+ *
+ *   Sun (16:8)        → Rest. Sunday dinner kicks off the long fast.
+ *   Mon (42h, deep)   → Recovery only — sauna, cold plunge, walk.
+ *                       Hard work is contraindicated past 24h fasted.
+ *   Tue (18:6 refeed) → LIFT. Insulin sensitivity peaks post-fast;
+ *                       the meal goes to muscle. Best lift day of the
+ *                       week.
+ *   Wed (OMAD)        → GTX class. Eat hard after.
+ *   Thu (OMAD)        → LIFT. Second hypertrophy hit of the week.
+ *   Fri (18:6)        → GTX class. Social-flexible eating window.
+ *   Sat (16:8)        → Cardio (Zone-2 or hike). Easy fasted state.
  */
 export interface WeeklyTrainingDay {
   type: WorkoutType;
@@ -82,17 +88,21 @@ export interface WeeklyTrainingDay {
 }
 
 export const DEFAULT_TRAINING_WEEK: Record<number, WeeklyTrainingDay> = {
-  0: { type: "rest", label: "Rest / mobility" }, // Sun
-  1: { type: "gtx", label: "GTX class" }, // Mon
-  2: { type: "lift", templateSlug: "upper_body_db", label: "Upper body — DB" }, // Tue
-  3: { type: "recovery", label: "Light walk + sauna" }, // Wed
-  4: { type: "gtx", label: "GTX class" }, // Thu
-  5: {
+  0: { type: "rest", label: "Rest" }, // Sun
+  1: { type: "recovery", label: "Sauna + cold + walk" }, // Mon
+  2: {
+    type: "lift",
+    templateSlug: "upper_body_db",
+    label: "Upper body — DB",
+  }, // Tue (refeed day — peak hypertrophy window)
+  3: { type: "gtx", label: "GTX class" }, // Wed
+  4: {
     type: "lift",
     templateSlug: "lower_kb_focus",
     label: "Lower body — KB",
-  }, // Fri
-  6: { type: "cardio", label: "GTX or zone-2 cardio" }, // Sat
+  }, // Thu
+  5: { type: "gtx", label: "GTX class" }, // Fri
+  6: { type: "cardio", label: "Zone-2 or hike" }, // Sat
 };
 
 /** Today's planned training session per the default template. */

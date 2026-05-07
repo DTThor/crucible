@@ -308,8 +308,8 @@ function PairingCoaching({
   workoutType,
   fastingSlug,
 }: {
-  workoutType: import("@/lib/training/templates").WorkoutType;
-  fastingSlug: import("@/lib/fasting/protocols").ProtocolSlug;
+  workoutType: WorkoutType;
+  fastingSlug: ProtocolSlug;
 }) {
   const rating = ratePairing(workoutType, fastingSlug);
   const styles = STYLE_BY_LEVEL[rating.level];
@@ -317,6 +317,7 @@ function PairingCoaching({
   const recWorkout = recommendedWorkout(fastingSlug);
   const showSwapHint =
     rating.level === "avoid" || rating.level === "caution";
+  const timing = TIMING_HINTS[fastingSlug];
 
   return (
     <div
@@ -332,6 +333,11 @@ function PairingCoaching({
       <p className="mt-1 text-xs leading-relaxed text-foreground/90">
         {rating.reason}
       </p>
+      {timing && (
+        <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
+          <span className="font-semibold">Timing:</span> {timing}
+        </p>
+      )}
       {showSwapHint && (
         <p className="mt-2 text-[11px] text-muted-foreground">
           Suggested: pair this fast with{" "}
@@ -343,6 +349,20 @@ function PairingCoaching({
     </div>
   );
 }
+
+/**
+ * Concrete "what this looks like in your day" examples, anchored to
+ * the user's stated pattern of starting all fasts after dinner.
+ * Surfaced in the editor so the abstract protocol slug becomes a
+ * concrete plan.
+ */
+const TIMING_HINTS: Partial<Record<ProtocolSlug, string>> = {
+  "16:8": "Last meal ~7pm → break fast ~11am next day.",
+  "18:6": "Last meal ~7pm → break fast ~1pm next day. Lunch + dinner only.",
+  omad: "One meal in the late afternoon / evening (~5–7pm). 23 hours fasted.",
+  "36h": "Last meal previous evening ~7pm → fully fasted today → break with breakfast or lunch tomorrow ~7am–12pm.",
+  "42h": "Last meal previous evening ~6pm → fully fasted today → break with lunch tomorrow ~12pm.",
+};
 
 const STYLE_BY_LEVEL: Record<
   PairingLevel,
@@ -374,9 +394,7 @@ const STYLE_BY_LEVEL: Record<
   },
 };
 
-function labelWorkout(
-  t: import("@/lib/training/templates").WorkoutType,
-): string {
+function labelWorkout(t: WorkoutType): string {
   switch (t) {
     case "lift":
       return "Lift";

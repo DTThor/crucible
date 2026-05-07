@@ -74,7 +74,7 @@ export function ratePairing(
     return {
       level: "caution",
       reason:
-        "Zone-2 walking is fine on a 36h fast. Anything harder than that — back off until refeed.",
+        "Zone-2 walking is fine on a long fast. Anything harder than that — back off until refeed.",
     };
   }
   if (isLongFast(fast) && workout === "recovery") {

@@ -1,23 +1,27 @@
 import type { ProtocolSlug } from "./protocols";
 
 /**
- * Default weekly fasting template, anchored in the program design from
- * architecture.md §4.1: 5× OMAD, 1× 36-hour, 2× 16:8 social-flexible.
+ * Default weekly fasting template — Fung-anchored, biased to the
+ * user's stated preferences:
+ *
+ *   • All fasts start after dinner (or occasional late lunch). The
+ *     overnight fast counts in each day's protocol.
+ *   • Weekly therapeutic 42-hour fast: Sunday ~6pm dinner is the last
+ *     meal, Monday is fully fasted, Tuesday lunch (~12pm) breaks it.
+ *   • Weekend protocols are shorter (16:8) for social flexibility.
+ *   • Tuesday is the refeed day (18:6 — lunch + dinner).
+ *   • Wed/Thu lean into OMAD; Friday relaxes to 18:6 for family meals.
  *
  * Days are JS-style: 0 = Sunday … 6 = Saturday.
- *
- * In v2 this becomes a per-user editable template stored in
- * fasting_templates.week_pattern. For v1 we hardcode and read the
- * user's selection later.
  */
 export const DEFAULT_WEEKLY_TEMPLATE: Record<number, ProtocolSlug> = {
-  0: "omad", // Sun
-  1: "omad", // Mon
-  2: "omad", // Tue
-  3: "36h", // Wed
+  0: "16:8", // Sun — weekend, dinner is the last meal before the 42h
+  1: "42h", // Mon — fully fasted; the centerpiece of the week
+  2: "18:6", // Tue — refeed (lunch + dinner)
+  3: "omad", // Wed
   4: "omad", // Thu
-  5: "16:8", // Fri  — family-flexible
-  6: "16:8", // Sat  — family-flexible
+  5: "18:6", // Fri — social-flexible
+  6: "16:8", // Sat — weekend
 };
 
 /** Today's planned protocol per the default template. */
