@@ -45,7 +45,7 @@ export default async function TrainPage({ searchParams }: TrainPageProps) {
         ? getWorkoutById(endedWorkoutId)
         : Promise.resolve(null),
       getTodayCompletedWorkouts(),
-      getPlannedDay(new Date()),
+      getPlannedDay(),
     ]);
 
   const showSummary =

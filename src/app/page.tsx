@@ -57,7 +57,7 @@ export default async function TodayPage() {
     getRecentWaterLogs(7),
     getLatestWeight(),
     getWeightAround(7),
-    getPlannedDay(new Date()),
+    getPlannedDay(),
   ]);
 
   const activeWorkoutSets = activeWorkout

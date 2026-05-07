@@ -15,6 +15,13 @@ import {
   clearPlannedDay,
 } from "@/lib/planning/actions";
 import {
+  ratePairing,
+  recommendedFast,
+  recommendedWorkout,
+  type PairingLevel,
+} from "@/lib/planning/coaching";
+import { dayOfMonthFromIso, monthFromIso } from "@/lib/tz";
+import {
   WORKOUT_TEMPLATES,
   type WorkoutType,
 } from "@/lib/training/templates";
@@ -85,8 +92,8 @@ const MONTH_SHORT = [
   "Dec",
 ];
 
-function formatLongDate(d: Date): string {
-  return `${WEEKDAY_LONG[d.getDay()]}, ${MONTH_SHORT[d.getMonth()]} ${d.getDate()}`;
+function formatLongDate(day: { dayOfWeek: number; dateIso: string }): string {
+  return `${WEEKDAY_LONG[day.dayOfWeek]}, ${MONTH_SHORT[monthFromIso(day.dateIso)]} ${dayOfMonthFromIso(day.dateIso)}`;
 }
 
 export function PlanDayEditor({ day, onClose }: PlanDayEditorProps) {
@@ -162,7 +169,7 @@ export function PlanDayEditor({ day, onClose }: PlanDayEditorProps) {
           <div className="flex items-start justify-between gap-2">
             <div>
               <h2 className="text-base font-semibold">
-                Plan for {formatLongDate(day.date)}
+                Plan for {formatLongDate(day)}
               </h2>
               {day.isOverridden && (
                 <p className="text-[11px] text-muted-foreground">
@@ -246,6 +253,11 @@ export function PlanDayEditor({ day, onClose }: PlanDayEditorProps) {
             </div>
           </section>
 
+          <PairingCoaching
+            workoutType={workoutType}
+            fastingSlug={fastingSlug}
+          />
+
           {error && (
             <p className="mt-3 rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2 text-xs text-destructive">
               {error}
@@ -285,6 +297,98 @@ export function PlanDayEditor({ day, onClose }: PlanDayEditorProps) {
       )}
     </Modal>
   );
+}
+
+/**
+ * Coaching block — explains the current pairing and surfaces warnings
+ * with a colored band based on the pairing level. Updates live as the
+ * user toggles workout / fast options in the editor.
+ */
+function PairingCoaching({
+  workoutType,
+  fastingSlug,
+}: {
+  workoutType: import("@/lib/training/templates").WorkoutType;
+  fastingSlug: import("@/lib/fasting/protocols").ProtocolSlug;
+}) {
+  const rating = ratePairing(workoutType, fastingSlug);
+  const styles = STYLE_BY_LEVEL[rating.level];
+  const recFast = recommendedFast(workoutType);
+  const recWorkout = recommendedWorkout(fastingSlug);
+  const showSwapHint =
+    rating.level === "avoid" || rating.level === "caution";
+
+  return (
+    <div
+      className={`mt-4 rounded-lg border ${styles.border} ${styles.bg} p-3`}
+    >
+      <div className="flex items-center justify-between gap-2">
+        <span
+          className={`text-[10px] font-bold uppercase tracking-wider ${styles.text}`}
+        >
+          {styles.label}
+        </span>
+      </div>
+      <p className="mt-1 text-xs leading-relaxed text-foreground/90">
+        {rating.reason}
+      </p>
+      {showSwapHint && (
+        <p className="mt-2 text-[11px] text-muted-foreground">
+          Suggested: pair this fast with{" "}
+          <span className="font-semibold">{labelWorkout(recWorkout)}</span>, or
+          this workout with a{" "}
+          <span className="font-semibold">{recFast}</span> fast.
+        </p>
+      )}
+    </div>
+  );
+}
+
+const STYLE_BY_LEVEL: Record<
+  PairingLevel,
+  { label: string; bg: string; border: string; text: string }
+> = {
+  great: {
+    label: "Great pairing",
+    bg: "bg-emerald-500/10",
+    border: "border-emerald-500/40",
+    text: "text-emerald-400",
+  },
+  ok: {
+    label: "Workable",
+    bg: "bg-muted/40",
+    border: "border-border",
+    text: "text-muted-foreground",
+  },
+  caution: {
+    label: "Heads up",
+    bg: "bg-amber-500/10",
+    border: "border-amber-500/40",
+    text: "text-amber-400",
+  },
+  avoid: {
+    label: "Bad combo",
+    bg: "bg-destructive/10",
+    border: "border-destructive/40",
+    text: "text-destructive",
+  },
+};
+
+function labelWorkout(
+  t: import("@/lib/training/templates").WorkoutType,
+): string {
+  switch (t) {
+    case "lift":
+      return "Lift";
+    case "gtx":
+      return "GTX class";
+    case "cardio":
+      return "Cardio";
+    case "recovery":
+      return "Recovery";
+    case "rest":
+      return "Rest";
+  }
 }
 
 function workoutTypeDisplay(dow: number): string {

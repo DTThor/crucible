@@ -17,6 +17,8 @@ import {
 } from "@/lib/training/templates";
 import { PROTOCOLS } from "@/lib/fasting/protocols";
 import type { PlannedDay } from "@/lib/planning/types";
+import { fastSpanRole } from "@/lib/planning/coaching";
+import { dayOfMonthFromIso, monthFromIso } from "@/lib/tz";
 
 interface PlanListProps {
   days: PlannedDay[];
@@ -49,7 +51,7 @@ const MONTH_SHORT = [
 function formatHeader(day: PlannedDay, idx: number): string {
   if (idx === 0) return "Today";
   if (idx === 1) return "Tomorrow";
-  return `${WEEKDAY_SHORT[day.dayOfWeek]} ${MONTH_SHORT[day.date.getMonth()]} ${day.date.getDate()}`;
+  return `${WEEKDAY_SHORT[day.dayOfWeek]} ${MONTH_SHORT[monthFromIso(day.dateIso)]} ${dayOfMonthFromIso(day.dateIso)}`;
 }
 
 function workoutLabel(day: PlannedDay): string {
@@ -73,6 +75,11 @@ export function PlanList({ days }: PlanListProps) {
           const Icon = WORKOUT_ICONS[day.workoutType];
           const protocol = PROTOCOLS[day.fastingProtocolSlug];
           const isToday = idx === 0;
+          const role = fastSpanRole(
+            day,
+            idx > 0 ? days[idx - 1] : null,
+            idx < days.length - 1 ? days[idx + 1] : null,
+          );
           return (
             <li key={day.dateIso}>
               <button
@@ -97,7 +104,7 @@ export function PlanList({ days }: PlanListProps) {
                       isToday ? "text-primary" : "text-foreground"
                     }`}
                   >
-                    {day.date.getDate()}
+                    {dayOfMonthFromIso(day.dateIso)}
                   </span>
                 </div>
 
@@ -113,6 +120,23 @@ export function PlanList({ days }: PlanListProps) {
                         className="h-3 w-3 text-primary"
                         aria-label="Overridden"
                       />
+                    )}
+                    {role !== "none" && (
+                      <span
+                        className={`shrink-0 rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider ${
+                          role === "long"
+                            ? "bg-violet-500/15 text-violet-300"
+                            : role === "refeed"
+                              ? "bg-emerald-500/15 text-emerald-400"
+                              : "bg-amber-500/15 text-amber-400"
+                        }`}
+                      >
+                        {role === "long"
+                          ? "Long fast"
+                          : role === "refeed"
+                            ? "Refeed"
+                            : "Fast eve"}
+                      </span>
                     )}
                   </p>
                   <p className="truncate text-[11px] text-muted-foreground">

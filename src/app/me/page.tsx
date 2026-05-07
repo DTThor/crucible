@@ -24,7 +24,7 @@ import { formatTodayDate } from "@/lib/copy";
 
 export const dynamic = "force-dynamic";
 
-const VERSION = "0.15.0";
+const VERSION = "0.15.1";
 
 export default async function MePage() {
   const user = await requireUser();

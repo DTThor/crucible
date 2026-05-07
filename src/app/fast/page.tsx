@@ -44,7 +44,7 @@ export default async function FastPage({ searchParams }: FastPageProps) {
     getLatestWeight(),
     getWeightAround(7),
     endedFastId ? getFastById(endedFastId) : Promise.resolve(null),
-    getPlannedDay(new Date()),
+    getPlannedDay(),
   ]);
 
   const todayProtocol = plan.fastingProtocolSlug;

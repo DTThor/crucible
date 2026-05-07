@@ -7,24 +7,11 @@ import {
 import { DEFAULT_WEEKLY_TEMPLATE } from "@/lib/fasting/templates";
 import type { ProtocolSlug } from "@/lib/fasting/protocols";
 import type { PlannedDay } from "./types";
-
-const TZ = "America/Chicago";
-
-/** Local-TZ YYYY-MM-DD for a Date. */
-function localDateKey(d: Date, tz: string = TZ): string {
-  return new Intl.DateTimeFormat("en-CA", {
-    timeZone: tz,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(d);
-}
-
-/** Local-TZ start-of-day Date for a Date. */
-function startOfDayLocal(d: Date, tz: string = TZ): Date {
-  const ymd = localDateKey(d, tz);
-  return new Date(`${ymd}T00:00:00`);
-}
+import {
+  addDays,
+  dowFromIso,
+  todayKey,
+} from "@/lib/tz";
 
 interface PlannedRow {
   date: string; // YYYY-MM-DD from postgres
@@ -44,17 +31,16 @@ export async function getUpcomingPlannedDays(
 ): Promise<PlannedDay[]> {
   noStore();
   const supabase = await createClient();
-  const today = startOfDayLocal(new Date());
-  const start = today;
-  const end = new Date(today.getTime() + (daysAhead - 1) * 24 * 3_600_000);
+  const startIso = todayKey();
+  const endIso = addDays(startIso, daysAhead - 1);
 
   const { data, error } = await supabase
     .from("planned_days")
     .select(
       "date, workout_type, workout_template_slug, fasting_protocol_slug, notes",
     )
-    .gte("date", localDateKey(start))
-    .lte("date", localDateKey(end));
+    .gte("date", startIso)
+    .lte("date", endIso);
 
   if (error) {
     console.error("getUpcomingPlannedDays error:", error);
@@ -68,20 +54,19 @@ export async function getUpcomingPlannedDays(
 
   const days: PlannedDay[] = [];
   for (let i = 0; i < daysAhead; i++) {
-    const date = new Date(today.getTime() + i * 24 * 3_600_000);
-    const dateIso = localDateKey(date);
-    const dow = date.getDay();
+    const dateIso = addDays(startIso, i);
     const override = overridesByDate.get(dateIso);
-    days.push(mergeDay({ date, dateIso, dow, override }));
+    days.push(mergeDay(dateIso, override));
   }
   return days;
 }
 
-/** The merged plan for one specific date. Used by Today/Train/Fast. */
-export async function getPlannedDay(date: Date): Promise<PlannedDay> {
+/** The merged plan for one specific day (today by default). */
+export async function getPlannedDay(
+  dateIso: string = todayKey(),
+): Promise<PlannedDay> {
   noStore();
   const supabase = await createClient();
-  const dateIso = localDateKey(date);
 
   const { data, error } = await supabase
     .from("planned_days")
@@ -95,25 +80,11 @@ export async function getPlannedDay(date: Date): Promise<PlannedDay> {
     console.error("getPlannedDay error:", error);
   }
 
-  return mergeDay({
-    date,
-    dateIso,
-    dow: date.getDay(),
-    override: (data as PlannedRow | null) ?? undefined,
-  });
+  return mergeDay(dateIso, (data as PlannedRow | null) ?? undefined);
 }
 
-function mergeDay({
-  date,
-  dateIso,
-  dow,
-  override,
-}: {
-  date: Date;
-  dateIso: string;
-  dow: number;
-  override?: PlannedRow;
-}): PlannedDay {
+function mergeDay(dateIso: string, override?: PlannedRow): PlannedDay {
+  const dow = dowFromIso(dateIso);
   const defaultWorkout = DEFAULT_TRAINING_WEEK[dow];
   const defaultFasting = DEFAULT_WEEKLY_TEMPLATE[dow];
 
@@ -131,7 +102,6 @@ function mergeDay({
 
   return {
     dateIso,
-    date,
     dayOfWeek: dow,
     workoutType,
     workoutTemplateSlug,

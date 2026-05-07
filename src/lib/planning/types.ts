@@ -10,11 +10,9 @@ import type { ProtocolSlug } from "@/lib/fasting/protocols";
  * row from planned_days, or the recurring weekday default if no row.
  */
 export interface PlannedDay {
-  /** YYYY-MM-DD in the user's local TZ. Stable key. */
+  /** YYYY-MM-DD in the user's local TZ. Stable key + display source. */
   dateIso: string;
-  /** Local-midnight Date for display. */
-  date: Date;
-  /** 0=Sun ... 6=Sat (local). */
+  /** 0=Sun ... 6=Sat. */
   dayOfWeek: number;
   workoutType: WorkoutType;
   /** Set when workoutType === 'lift'. */

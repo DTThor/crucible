@@ -7,6 +7,7 @@
 import { unstable_noStore as noStore } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { kgToLb } from "@/lib/units";
+import { startOfDayUtcIso, todayKey } from "@/lib/tz";
 import { getTemplate } from "./templates";
 import { getExercise } from "./exercises";
 
@@ -96,16 +97,8 @@ export async function getTodayCompletedWorkouts(): Promise<HistoricWorkout[]> {
   noStore();
   const supabase = await createClient();
 
-  // Compute "start of today" in Chicago. Postgres handles either ISO
-  // shape against a timestamptz column.
-  const tz = "America/Chicago";
-  const ymd = new Intl.DateTimeFormat("en-CA", {
-    timeZone: tz,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(new Date());
-  const sinceLocalMidnight = `${ymd}T00:00:00-06:00`;
+  // DST-correct "start of today in Chicago" as a UTC ISO timestamp.
+  const sinceLocalMidnight = startOfDayUtcIso(todayKey());
 
   const { data, error } = await supabase
     .from("workouts")
