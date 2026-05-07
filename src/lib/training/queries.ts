@@ -1,5 +1,6 @@
 import { unstable_noStore as noStore } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import type { WorkoutDetails } from "./details";
 
 export interface ActiveWorkout {
   id: string;
@@ -7,6 +8,7 @@ export interface ActiveWorkout {
   template_slug: string | null;
   started_at: string;
   notes: string | null;
+  details: WorkoutDetails | null;
 }
 
 export interface WorkoutSet {
@@ -34,7 +36,7 @@ export async function getActiveWorkout(): Promise<ActiveWorkout | null> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("workouts")
-    .select("id, type, template_slug, started_at, notes")
+    .select("id, type, template_slug, started_at, notes, details")
     .eq("status", "active")
     .is("ended_at", null)
     .order("started_at", { ascending: false })
@@ -55,6 +57,7 @@ export interface WorkoutById {
   ended_at: string | null;
   status: string;
   notes: string | null;
+  details: WorkoutDetails | null;
 }
 
 /** Fetch a single workout by id (RLS confines to user's own). */
@@ -65,7 +68,9 @@ export async function getWorkoutById(
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("workouts")
-    .select("id, type, template_slug, started_at, ended_at, status, notes")
+    .select(
+      "id, type, template_slug, started_at, ended_at, status, notes, details",
+    )
     .eq("id", id)
     .maybeSingle();
 

@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { lbToKg } from "@/lib/units";
 import type { WorkoutType } from "./templates";
+import { compactDetails, type WorkoutDetails } from "./details";
 
 export type ActionResult =
   | { ok: true; workoutId?: string; setId?: string }
@@ -270,6 +271,29 @@ export async function endAllActiveWorkouts(): Promise<{
   }
   revalidatePath("/", "layout");
   return { ok: true, count: data?.length ?? 0 };
+}
+
+/**
+ * Replace the type-specific details blob on a workout. We re-write
+ * (not merge) so callers can clear individual fields by passing
+ * undefined — `compactDetails` strips empties before save.
+ */
+export async function updateWorkoutDetails(
+  workoutId: string,
+  details: WorkoutDetails,
+): Promise<ActionResult> {
+  const { supabase } = await authedClient();
+  const compact = compactDetails(details);
+  const { error } = await supabase
+    .from("workouts")
+    .update({ details: compact })
+    .eq("id", workoutId);
+  if (error) {
+    console.error("updateWorkoutDetails error:", error);
+    return fail(error.message);
+  }
+  revalidatePath("/", "layout");
+  return { ok: true };
 }
 
 /**

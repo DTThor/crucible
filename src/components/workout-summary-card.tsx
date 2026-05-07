@@ -13,6 +13,8 @@ import { getExercise } from "@/lib/training/exercises";
 import { getTemplate } from "@/lib/training/templates";
 import { kgToLb } from "@/lib/units";
 import type { WorkoutSet } from "@/lib/training/queries";
+import type { WorkoutDetails } from "@/lib/training/details";
+import { WorkoutDetailSummary } from "@/components/workout-detail-summary";
 
 interface WorkoutSummaryCardProps {
   workoutId: string;
@@ -22,6 +24,7 @@ interface WorkoutSummaryCardProps {
   endedAt: string;
   status: string;
   sets: WorkoutSet[];
+  details: WorkoutDetails | null;
 }
 
 const WEEKDAY_SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -67,6 +70,7 @@ export function WorkoutSummaryCard({
   endedAt,
   status,
   sets,
+  details,
 }: WorkoutSummaryCardProps) {
   const router = useRouter();
   const [localStartedAt, setLocalStartedAt] = useState(startedAt);
@@ -175,6 +179,10 @@ export function WorkoutSummaryCard({
               </p>
             )}
           </div>
+
+          {/* Type-specific details (cardio modality + minutes, recovery
+              activities, GTX rating, etc.) — null for lift workouts */}
+          <WorkoutDetailSummary type={type} details={details} />
 
           {/* Per-exercise breakdown */}
           {Object.keys(setsByExercise).length > 0 && (

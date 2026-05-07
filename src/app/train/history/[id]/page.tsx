@@ -14,6 +14,7 @@ import {
   formatDuration,
   formatVolume,
 } from "@/lib/training/history-utils";
+import { WorkoutDetailSummary } from "@/components/workout-detail-summary";
 
 export const dynamic = "force-dynamic";
 
@@ -175,10 +176,16 @@ export default async function WorkoutDetailPage({ params }: DetailProps) {
           </CardContent>
         </Card>
 
+        {/* Non-lift detail summary (cardio, GTX, recovery) */}
+        <WorkoutDetailSummary type={workout.type} details={workout.details} />
+
         {Object.keys(setsByExercise).length === 0 ? (
-          <div className="rounded-xl border border-border bg-card p-4 text-center text-sm text-muted-foreground">
-            No sets were logged in this workout.
-          </div>
+          // Only show "no sets" for workout types that should have sets.
+          workout.type === "lift" ? (
+            <div className="rounded-xl border border-border bg-card p-4 text-center text-sm text-muted-foreground">
+              No sets were logged in this workout.
+            </div>
+          ) : null
         ) : (
           <div className="space-y-3">
             {Object.entries(setsByExercise).map(([slug, group]) => {

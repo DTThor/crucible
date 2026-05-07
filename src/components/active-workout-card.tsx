@@ -5,6 +5,16 @@ import { useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Modal } from "@/components/modal";
 import { ExerciseSetLogger } from "@/components/exercise-set-logger";
+import {
+  GtxLogger,
+  CardioLogger,
+  RecoveryLogger,
+} from "@/components/workout-detail-loggers";
+import type {
+  CardioDetails,
+  GtxDetails,
+  RecoveryDetails,
+} from "@/lib/training/details";
 import { Dumbbell, AlertTriangle, Pencil } from "lucide-react";
 import {
   endWorkout,
@@ -178,15 +188,24 @@ export function ActiveWorkoutCard({
             </div>
           )}
 
-          {/* Non-lift workouts — just elapsed time and end button */}
-          {!template && (
-            <p className="rounded-lg border border-border bg-muted/30 p-4 text-center text-sm text-muted-foreground">
-              {workout.type === "gtx"
-                ? "Working out at the gym. Tap Complete when you finish the class."
-                : workout.type === "cardio"
-                  ? "Cardio session in progress."
-                  : "Recovery session. Tap Complete when done."}
-            </p>
+          {/* Non-lift workouts — type-specific detail logger */}
+          {!template && workout.type === "gtx" && (
+            <GtxLogger
+              workoutId={workout.id}
+              initial={(workout.details ?? {}) as GtxDetails}
+            />
+          )}
+          {!template && workout.type === "cardio" && (
+            <CardioLogger
+              workoutId={workout.id}
+              initial={(workout.details ?? {}) as CardioDetails}
+            />
+          )}
+          {!template && workout.type === "recovery" && (
+            <RecoveryLogger
+              workoutId={workout.id}
+              initial={(workout.details ?? {}) as RecoveryDetails}
+            />
           )}
 
           {actionError && (

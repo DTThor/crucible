@@ -109,6 +109,7 @@ export default async function TrainPage({ searchParams }: TrainPageProps) {
           endedAt={justEnded.ended_at}
           status={justEnded.status}
           sets={setsForView}
+          details={justEnded.details}
         />
       ) : active ? (
         <ActiveWorkoutCard
