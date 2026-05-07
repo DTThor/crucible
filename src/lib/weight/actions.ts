@@ -51,3 +51,27 @@ export async function logWeight(
   revalidatePath("/", "layout");
   return ok();
 }
+
+/**
+ * Delete a single weight log by id. RLS confines the delete to rows
+ * the user owns, so no extra ownership check is needed.
+ */
+export async function deleteWeightLog(id: string): Promise<ActionResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const { error } = await supabase
+    .from("weight_logs")
+    .delete()
+    .eq("id", id);
+
+  if (error) {
+    console.error("deleteWeightLog error:", error);
+    return fail(error.message);
+  }
+  revalidatePath("/", "layout");
+  return ok();
+}

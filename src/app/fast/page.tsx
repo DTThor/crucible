@@ -7,11 +7,16 @@ import { FastSummaryCard } from "@/components/fast-summary-card";
 import { WaterQuickLog } from "@/components/water-quick-log";
 import { WeightCard } from "@/components/weight-card";
 import { TabHeader } from "@/components/tab-header";
+import { BfcacheRefresher } from "@/components/bfcache-refresher";
 import { getActiveFast, getFastById } from "@/lib/fasting/queries";
 import { PROTOCOLS } from "@/lib/fasting/protocols";
 import { getPlannedDay } from "@/lib/planning/queries";
 import { getRecentWaterLogs } from "@/lib/water/queries";
-import { getLatestWeight, getWeightAround } from "@/lib/weight/queries";
+import {
+  getLatestWeight,
+  getRecentWeightLogs,
+  getWeightAround,
+} from "@/lib/weight/queries";
 import {
   getProfile,
   resolveInitials,
@@ -35,6 +40,7 @@ export default async function FastPage({ searchParams }: FastPageProps) {
     waterLogs,
     latestWeight,
     weekAgoWeight,
+    weightLogs,
     justEnded,
     plan,
   ] = await Promise.all([
@@ -43,6 +49,7 @@ export default async function FastPage({ searchParams }: FastPageProps) {
     getRecentWaterLogs(7),
     getLatestWeight(),
     getWeightAround(7),
+    getRecentWeightLogs(365),
     endedFastId ? getFastById(endedFastId) : Promise.resolve(null),
     getPlannedDay(),
   ]);
@@ -68,6 +75,7 @@ export default async function FastPage({ searchParams }: FastPageProps) {
 
   return (
     <div className="space-y-3">
+      <BfcacheRefresher />
       <TabHeader
         avatarUrl={profile?.avatar_url ?? null}
         initials={initials}
@@ -96,7 +104,11 @@ export default async function FastPage({ searchParams }: FastPageProps) {
 
       <WaterQuickLog recentLogs={waterLogs} />
 
-      <WeightCard latest={latestWeight} weekAgo={weekAgoWeight} />
+      <WeightCard
+        latest={latestWeight}
+        weekAgo={weekAgoWeight}
+        logs={weightLogs}
+      />
 
       <Link
         href="/fast/history"

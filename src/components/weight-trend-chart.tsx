@@ -1,8 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import { ChevronRight } from "lucide-react";
 import { kgToLb } from "@/lib/units";
 import type { WeightLog } from "@/lib/weight/queries";
+import { WeightHistoryModal } from "@/components/weight-history-modal";
 
 interface WeightTrendChartProps {
   logs: WeightLog[];
@@ -22,6 +24,7 @@ interface Point {
  */
 export function WeightTrendChart({ logs, goalLb }: WeightTrendChartProps) {
   const [hoverIdx, setHoverIdx] = useState<number | null>(null);
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   if (logs.length === 0) {
     return (
@@ -86,22 +89,37 @@ export function WeightTrendChart({ logs, goalLb }: WeightTrendChartProps) {
   const deltaLb = latest.lb - oldest.lb;
 
   return (
-    <div className="rounded-xl border border-border bg-card p-3">
-      <div className="mb-2 flex items-baseline justify-between">
-        <p className="text-sm font-semibold">Weight · 30 days</p>
-        <p
-          className={`text-xs font-mono tabular-nums ${
-            deltaLb < -0.05
-              ? "text-emerald-400"
-              : deltaLb > 0.05
-                ? "text-amber-400"
-                : "text-muted-foreground"
-          }`}
-        >
-          {deltaLb > 0 ? "+" : ""}
-          {deltaLb.toFixed(1)} lb
-        </p>
-      </div>
+    <>
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={() => setHistoryOpen(true)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            setHistoryOpen(true);
+          }
+        }}
+        className="cursor-pointer rounded-xl border border-border bg-card p-3 transition-colors hover:bg-accent/30"
+      >
+        <div className="mb-2 flex items-baseline justify-between gap-2">
+          <p className="flex items-center gap-1 text-sm font-semibold">
+            Weight · 30 days
+            <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
+          </p>
+          <p
+            className={`font-mono text-xs tabular-nums ${
+              deltaLb < -0.05
+                ? "text-emerald-400"
+                : deltaLb > 0.05
+                  ? "text-amber-400"
+                  : "text-muted-foreground"
+            }`}
+          >
+            {deltaLb > 0 ? "+" : ""}
+            {deltaLb.toFixed(1)} lb
+          </p>
+        </div>
 
       <svg
         width="100%"
@@ -182,25 +200,34 @@ export function WeightTrendChart({ logs, goalLb }: WeightTrendChartProps) {
             strokeWidth={1.5}
             onMouseEnter={() => setHoverIdx(i)}
             onMouseLeave={() => setHoverIdx(null)}
-            onClick={() => setHoverIdx(i)}
+            onClick={(e) => {
+              // Don't bubble up to the card-level "open history" handler.
+              e.stopPropagation();
+              setHoverIdx(i);
+            }}
             style={{ cursor: "pointer" }}
           />
         ))}
       </svg>
 
-      <div className="mt-1 flex items-center justify-between text-[10px] text-muted-foreground">
-        <span>
-          {hoverIdx != null
-            ? `${new Date(points[hoverIdx].ts).toLocaleDateString([], {
-                month: "short",
-                day: "numeric",
-              })} · ${points[hoverIdx].lb.toFixed(1)} lb`
-            : `${oldest.lb.toFixed(1)} → ${latest.lb.toFixed(1)} lb`}
-        </span>
-        <span>
-          {points.length} log{points.length === 1 ? "" : "s"}
-        </span>
+        <div className="mt-1 flex items-center justify-between text-[10px] text-muted-foreground">
+          <span>
+            {hoverIdx != null && points[hoverIdx]
+              ? `${new Date(points[hoverIdx].ts).toLocaleDateString([], {
+                  month: "short",
+                  day: "numeric",
+                })} · ${points[hoverIdx].lb.toFixed(1)} lb`
+              : `${oldest.lb.toFixed(1)} → ${latest.lb.toFixed(1)} lb`}
+          </span>
+          <span>Tap to view all</span>
+        </div>
       </div>
-    </div>
+
+      <WeightHistoryModal
+        open={historyOpen}
+        onClose={() => setHistoryOpen(false)}
+        logs={logs}
+      />
+    </>
   );
 }

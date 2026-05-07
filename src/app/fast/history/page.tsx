@@ -13,7 +13,10 @@ export default async function FastHistoryPage() {
 
   const [history, weightLogs] = await Promise.all([
     getFastHistory(90),
-    getRecentWeightLogs(30),
+    // Pull a year of weight logs — the trend chart still focuses on
+    // the last 30 days (x-axis is anchored there), but the "tap to
+    // view all" modal benefits from the longer history.
+    getRecentWeightLogs(365),
   ]);
 
   return (

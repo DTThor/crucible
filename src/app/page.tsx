@@ -7,6 +7,7 @@ import { TodayFastSnapshot } from "@/components/today-fast-snapshot";
 import { TodayWorkoutSnapshot } from "@/components/today-workout-snapshot";
 import { WaterQuickLog } from "@/components/water-quick-log";
 import { WeightCard } from "@/components/weight-card";
+import { BfcacheRefresher } from "@/components/bfcache-refresher";
 import { getActiveFast } from "@/lib/fasting/queries";
 import { PROTOCOLS } from "@/lib/fasting/protocols";
 import {
@@ -16,7 +17,11 @@ import {
 import { WORKOUT_TEMPLATES } from "@/lib/training/templates";
 import { getPlannedDay } from "@/lib/planning/queries";
 import { getRecentWaterLogs } from "@/lib/water/queries";
-import { getLatestWeight, getWeightAround } from "@/lib/weight/queries";
+import {
+  getLatestWeight,
+  getRecentWeightLogs,
+  getWeightAround,
+} from "@/lib/weight/queries";
 import {
   getProfile,
   resolveInitials,
@@ -49,6 +54,7 @@ export default async function TodayPage() {
     waterLogs,
     latestWeight,
     weekAgoWeight,
+    weightLogs,
     plan,
   ] = await Promise.all([
     getProfile(),
@@ -57,6 +63,8 @@ export default async function TodayPage() {
     getRecentWaterLogs(7),
     getLatestWeight(),
     getWeightAround(7),
+    // Year of weigh-ins for the history modal mounted inside WeightCard.
+    getRecentWeightLogs(365),
     getPlannedDay(),
   ]);
 
@@ -74,6 +82,7 @@ export default async function TodayPage() {
 
   return (
     <div className="space-y-3">
+      <BfcacheRefresher />
       <TabHeader
         avatarUrl={profile?.avatar_url ?? null}
         initials={initials}
@@ -108,7 +117,11 @@ export default async function TodayPage() {
 
       <WaterQuickLog recentLogs={waterLogs} />
 
-      <WeightCard latest={latestWeight} weekAgo={weekAgoWeight} />
+      <WeightCard
+        latest={latestWeight}
+        weekAgo={weekAgoWeight}
+        logs={weightLogs}
+      />
 
       <Card>
         <CardHeader className="pb-2 pt-4">
