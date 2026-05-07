@@ -78,9 +78,11 @@ export function ActiveWorkoutCard({
       const res = await endWorkout(workout.id);
       if (!res.ok) {
         setActionError(res.error);
-      } else {
-        router.refresh();
       }
+      // Always refresh — even on success, this guarantees the page swaps
+      // back to the start screen. On failure (e.g. workout was deleted
+      // elsewhere) it also recovers to a consistent state.
+      router.refresh();
     });
   }
 
@@ -107,9 +109,8 @@ export function ActiveWorkoutCard({
       const res = await abandonWorkout(workout.id);
       if (!res.ok) {
         setActionError(res.error);
-      } else {
-        router.refresh();
       }
+      router.refresh();
     });
   }
 

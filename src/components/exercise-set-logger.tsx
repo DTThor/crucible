@@ -150,6 +150,9 @@ export function ExerciseSetLogger({
       } else if (!res.ok) {
         patchRow(idx, { completed: false });
         setError(res.error);
+        // Refresh in case the workout was deleted out from under us — the
+        // page will then re-render to the start screen.
+        router.refresh();
       }
     });
   }
@@ -209,7 +212,7 @@ export function ExerciseSetLogger({
       )}
 
       {/* Column labels */}
-      <div className="grid grid-cols-[1.75rem_1fr_0.75rem_1fr_2.75rem] items-center gap-2 px-1">
+      <div className="grid grid-cols-[1.5rem_minmax(0,1fr)_0.5rem_minmax(0,1fr)_2.25rem] items-center gap-1.5 px-0.5">
         <span className="text-center text-[10px] uppercase tracking-wider text-muted-foreground">
           Set
         </span>
@@ -228,9 +231,9 @@ export function ExerciseSetLogger({
         {rows.map((row, i) => (
           <div
             key={i}
-            className="grid grid-cols-[1.75rem_1fr_0.75rem_1fr_2.75rem] items-center gap-2"
+            className="grid grid-cols-[1.5rem_minmax(0,1fr)_0.5rem_minmax(0,1fr)_2.25rem] items-center gap-1.5"
           >
-            <span className="text-center font-mono text-base font-bold tabular-nums">
+            <span className="text-center font-mono text-sm font-bold tabular-nums">
               {i + 1}
             </span>
 
@@ -244,10 +247,8 @@ export function ExerciseSetLogger({
               onBlur={() => handleBlur(i)}
               placeholder="lbs"
               className={cn(
-                "h-11 rounded-lg border bg-muted/30 px-2 text-center font-mono text-sm font-semibold tabular-nums focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                row.completed
-                  ? "border-emerald-500/40"
-                  : "border-border",
+                "h-10 w-full min-w-0 rounded-lg border bg-muted/30 px-1 text-center font-mono text-sm font-semibold tabular-nums focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                row.completed ? "border-emerald-500/40" : "border-border",
               )}
             />
 
@@ -263,10 +264,8 @@ export function ExerciseSetLogger({
               onBlur={() => handleBlur(i)}
               placeholder={prescribedReps ? prescribedReps.toString() : "reps"}
               className={cn(
-                "h-11 rounded-lg border bg-muted/30 px-2 text-center font-mono text-sm font-semibold tabular-nums focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                row.completed
-                  ? "border-emerald-500/40"
-                  : "border-border",
+                "h-10 w-full min-w-0 rounded-lg border bg-muted/30 px-1 text-center font-mono text-sm font-semibold tabular-nums focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                row.completed ? "border-emerald-500/40" : "border-border",
               )}
             />
 
@@ -280,7 +279,7 @@ export function ExerciseSetLogger({
                   : `Mark set ${i + 1} done`
               }
               className={cn(
-                "flex h-11 w-11 items-center justify-center rounded-full transition-all",
+                "flex h-10 w-10 items-center justify-center rounded-full transition-all",
                 row.completed
                   ? "bg-emerald-500 text-white shadow-md shadow-emerald-500/30"
                   : "border-2 border-muted-foreground/30 text-muted-foreground hover:border-primary hover:text-primary",

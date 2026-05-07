@@ -85,7 +85,21 @@ export async function addSet(input: AddSetInput): Promise<ActionResult> {
     return fail("Weight out of range.");
   }
   if (input.rpe != null && (input.rpe < 1 || input.rpe > 10)) {
-    return fail("RPE must be 1–10.");
+    return fail("Difficulty must be 1–10.");
+  }
+
+  // Pre-check the workout exists. Without this, a stale workoutId from a
+  // cached UI tab (after the workout was deleted/cleared elsewhere) would
+  // surface as a raw FK constraint error to the user.
+  const { data: workoutRow } = await supabase
+    .from("workouts")
+    .select("id")
+    .eq("id", input.workoutId)
+    .maybeSingle();
+  if (!workoutRow) {
+    return fail(
+      "Workout no longer exists. The page will refresh.",
+    );
   }
 
   const { data, error } = await supabase
