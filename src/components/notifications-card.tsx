@@ -10,16 +10,21 @@ import {
 } from "@/lib/push/actions";
 
 /**
- * Standard URL-base64 → Uint8Array decode required by
- * PushManager.subscribe's applicationServerKey field.
+ * URL-safe base64 → ArrayBuffer. Required by PushManager.subscribe's
+ * applicationServerKey field.
+ *
+ * Returns ArrayBuffer (not Uint8Array) so it satisfies the strict
+ * BufferSource type without the Uint8Array<ArrayBufferLike> /
+ * Uint8Array<ArrayBuffer> mismatch newer TS DOM libs flag.
  */
-function urlBase64ToUint8Array(base64String: string): Uint8Array {
+function urlBase64ToArrayBuffer(base64String: string): ArrayBuffer {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
   const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
   const raw = atob(base64);
-  const out = new Uint8Array(raw.length);
-  for (let i = 0; i < raw.length; i++) out[i] = raw.charCodeAt(i);
-  return out;
+  const buf = new ArrayBuffer(raw.length);
+  const view = new Uint8Array(buf);
+  for (let i = 0; i < raw.length; i++) view[i] = raw.charCodeAt(i);
+  return buf;
 }
 
 type Status =
@@ -98,7 +103,7 @@ export function NotificationsCard() {
         const reg = await navigator.serviceWorker.ready;
         const sub = await reg.pushManager.subscribe({
           userVisibleOnly: true,
-          applicationServerKey: urlBase64ToUint8Array(publicKey),
+          applicationServerKey: urlBase64ToArrayBuffer(publicKey),
         });
         const json = sub.toJSON() as {
           endpoint: string;
