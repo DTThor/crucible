@@ -13,6 +13,7 @@ import {
 import { DebugFastsPanel } from "@/components/debug-fasts-panel";
 import { DebugWorkoutsPanel } from "@/components/debug-workouts-panel";
 import { ProfileEditCard } from "@/components/profile-edit-card";
+import { NotificationsCard } from "@/components/notifications-card";
 import { getDebugSnapshot } from "@/lib/fasting/debug";
 import { getWorkoutDebugSnapshot } from "@/lib/training/debug";
 import {
@@ -24,7 +25,7 @@ import { formatTodayDate } from "@/lib/copy";
 
 export const dynamic = "force-dynamic";
 
-const VERSION = "0.17.0";
+const VERSION = "0.18.1";
 
 export default async function MePage() {
   const user = await requireUser();
@@ -60,6 +61,8 @@ export default async function MePage() {
         initialAvatarUrl={profile?.avatar_url ?? null}
         initials={initials}
       />
+
+      <NotificationsCard />
 
       <Card>
         <CardContent className="flex items-center justify-between py-5">

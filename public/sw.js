@@ -15,7 +15,7 @@
  * Bumping CACHE_VERSION evicts the old cache on activation.
  */
 
-const CACHE_VERSION = "crucible-v50";
+const CACHE_VERSION = "crucible-v51";
 
 // Path prefixes that are safe to cache aggressively. These are
 // content-addressed (Next chunks include hashes; icons + manifest are
@@ -57,6 +57,66 @@ function isCacheable(url) {
   if (CACHEABLE_EXACT.includes(url.pathname)) return true;
   return CACHEABLE_PREFIXES.some((p) => url.pathname.startsWith(p));
 }
+
+// ── Web push ────────────────────────────────────────────────────────
+// iOS 16.4+ supports web push for installed PWAs. The server signs
+// payloads with VAPID; we render them here. Tag is used to dedupe so
+// rapid-fire pushes of the same kind don't pile up.
+self.addEventListener("push", (event) => {
+  let data = {};
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch {
+    // Push payload wasn't JSON — fall through with defaults.
+  }
+  const title = data.title || "Crucible";
+  const body = data.body || "";
+  const url = data.url || "/";
+  const tag = data.tag || undefined;
+
+  event.waitUntil(
+    self.registration.showNotification(title, {
+      body,
+      icon: "/icons/icon-192.png",
+      badge: "/icons/icon-192.png",
+      tag,
+      data: { url },
+      // iOS ignores most action/vibrate options today; keep it simple.
+    }),
+  );
+});
+
+// Tap a notification → focus the existing PWA window if open, else
+// open a fresh one. Deep-links to whatever URL the push specified.
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const url = (event.notification.data && event.notification.data.url) || "/";
+  event.waitUntil(
+    (async () => {
+      const all = await self.clients.matchAll({
+        type: "window",
+        includeUncontrolled: true,
+      });
+      for (const client of all) {
+        // Reuse any open Crucible window. focus + navigate to the
+        // deep-link URL.
+        if ("focus" in client) {
+          await client.focus();
+          if ("navigate" in client) {
+            try {
+              await client.navigate(url);
+            } catch {
+              // Cross-origin or navigation blocked — ignore.
+            }
+          }
+          return;
+        }
+      }
+      // No window open — open a fresh one.
+      await self.clients.openWindow(url);
+    })(),
+  );
+});
 
 self.addEventListener("fetch", (event) => {
   const req = event.request;
