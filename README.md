@@ -1,6 +1,5 @@
 # Crucible
 
-
 A mobile-first PWA to plan, prioritize, and track the habits that matter most. v0.1.0 ships the foundation — auth, app shell, four tabs, installable on your phone home screen. Fasting and training features land in Phases 1 and 2.
 
 ## Stack
